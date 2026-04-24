@@ -1,0 +1,43 @@
+# Python cache and environments
+__pycache__/
+*.py[cod]
+*.pyo
+.venv*/
+venv/
+
+# Local datasets and heavy data folders
+celebdf_v2/celebdf_v2/
+ff++/
+
+# Training outputs and checkpoints
+outputs_*/
+celebdf_v2/outputs_*/
+**/gradcam/
+*.pth
+*.pt
+*.ckpt
+
+# Generated metrics/artifacts
+**/evaluation_metrics.json
+**/training_history.json
+**/val_predictions.csv
+**/confusion_matrix.png
+**/training_curves.png
+**/metrics_overview.png
+**/val_acc_val_loss_dual_axis.png
+**/generalization_gap.png
+**/checkpoint_report.json
+**/quick_eval_*
+
+# Logs and temporary runtime files
+*.log
+*.jsonl
+
+# Large binaries / installers / archives
+*.zip
+*.exe
+*.parquet
+
+# OS files
+.DS_Store
+Thumbs.db
