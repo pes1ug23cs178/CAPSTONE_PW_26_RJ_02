@@ -1,0 +1,24 @@
+name: b2_swin_dann
+parent: b1_swin
+notes: B1 + DANN (GRL, weight 0.1) + MMD (weight 0.1); domains = real + 3 FF++ methods
+model:
+  backbone: swin_b
+  feature_norm: instance
+  domain: {enabled: true, num_domains: 4, dann_weight: 0.1, mmd_weight: 0.1, mmd_on: all}
+data:
+  train: splits/ffpp_train.csv
+  val: splits/ffpp_val.csv
+  tests: [splits/ffpp_test.csv, splits/dfd_test.csv, splits/celebdf_test.csv]
+  sbi: false
+  cells: [real, Deepfakes, Face2Face, FaceSwap]
+  augment: {flip: 0.5, color_jitter: 0.1, jpeg_p: 0.3, jpeg_q: [60, 100], blur_p: 0.1}
+optim:
+  lr: {backbone: 1.0e-4, heads: 1.0e-3}
+  weight_decay: 0.05
+  epochs: 10
+  steps_per_epoch: 1500
+  batch_size: 32
+  warmup_epochs: 1
+  ema: 0.999
+  grad_clip: 1.0
+  precision: bf16
