@@ -52,12 +52,14 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--batch-size", type=int, default=64)
+    ap.add_argument("--splits", nargs="+", default=["ffpp_train", "ffpp_val"])
+    ap.add_argument("--no-check-image", action="store_true")
     args = ap.parse_args()
     import face_alignment
 
     paths = load_paths()
     data_root, cache_root = paths["data_root"], paths["cache_root"]
-    df = pd.concat([pd.read_csv(REPO_ROOT / "splits" / f"{s}.csv", dtype=str) for s in ("ffpp_train", "ffpp_val")])
+    df = pd.concat([pd.read_csv(REPO_ROOT / "splits" / f"{s}.csv", dtype=str) for s in args.splits])
     df = df[df["method"] == "real"].reset_index(drop=True)
     if args.limit:
         df = df.head(args.limit)
@@ -66,7 +68,7 @@ def main() -> None:
 
     fa = face_alignment.FaceAlignment(face_alignment.LandmarksType.TWO_D, device="cuda", face_detector="sfd")
     box = [[0, 0, 224, 224]]
-    fail_path = cache_root / "landmarks" / "failures.csv"
+    fail_path = cache_root / "landmarks" / f"failures_{'_'.join(args.splits)}.csv"
     fail_path.parent.mkdir(parents=True, exist_ok=True)
     failures = []
     for k, (vid, fp) in enumerate(todo, 1):
@@ -92,7 +94,8 @@ def main() -> None:
     rate = len(failures) / max(total, 1)
     print(f"failures: {len(failures)} / {total} = {rate:.2%}", flush=True)
     ok = [(r.video_id, r.frame_path) for r in df.itertuples() if landmark_path(cache_root, r.video_id, r.frame_path).exists()]
-    draw_check(random.Random(0).sample(ok, min(16, len(ok))), cache_root, data_root, cache_root / "landmarks_check.png")
+    if not args.no_check_image:
+        draw_check(random.Random(0).sample(ok, min(16, len(ok))), cache_root, data_root, cache_root / "landmarks_check.png")
     if rate >= 0.02:
         sys.exit(f"Failure rate {rate:.2%} >= 2%")
 

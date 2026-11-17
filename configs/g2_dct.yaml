@@ -1,0 +1,65 @@
+name: g2_dct
+parent: g1_concepts
+notes: G1 + DCT frequency branch + gated fusion
+model:
+  backbone: clip_vitl14_lora
+  lora:
+    r: 16
+    alpha: 32
+    dropout: 0.1
+  freq_branch: dct
+  fusion: gated
+  head: concept
+  domain:
+    enabled: false
+  grad_checkpointing: false
+  save_trainable_only: true
+  num_concepts: 10
+  z_dim: 512
+data:
+  train: splits/ffpp_train.csv
+  val: splits/ffpp_val.csv
+  tests:
+  - splits/ffpp_test.csv
+  - splits/dfd_test.csv
+  - splits/celebdf_test.csv
+  sbi: true
+  cells:
+  - real
+  - sbi
+  - Deepfakes
+  - Face2Face
+  - FaceSwap
+  cell_weights:
+    real: 3
+    sbi: 3
+    Deepfakes: 1
+    Face2Face: 1
+    FaceSwap: 1
+  augment:
+    flip: 0.5
+    color_jitter: 0.1
+    jpeg_p: 0.3
+    jpeg_q:
+    - 60
+    - 100
+    blur_p: 0.1
+optim:
+  lr:
+    lora: 0.0002
+    freq: 0.002
+    fusion: 0.001
+    heads: 0.001
+  weight_decay: 0.05
+  epochs: 12
+  steps_per_epoch: 1500
+  batch_size: 32
+  warmup_epochs: 1
+  ema: 0.999
+  grad_clip: 1.0
+  precision: bf16
+loss:
+  concept: 0.5
+  map: 0.5
+  w_l1: 0.0001
+  residual: 0.001

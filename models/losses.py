@@ -31,6 +31,25 @@ def compute_loss(out: Dict[str, torch.Tensor], batch: Dict[str, torch.Tensor], c
     terms: Dict[str, torch.Tensor] = {"bce": F.binary_cross_entropy_with_logits(out["logit"].float(), label.float())}
     weights: Dict[str, float] = {"bce": float(cfg.get("loss", {}).get("bce", 1.0))}
 
+    lw = cfg.get("loss", {})
+    if "concepts" in out:  # concept-bottleneck models (G1, G2, G3, students S0/S3)
+        terms["concept"] = masked_bce(out["concepts"], batch["concepts"], batch["concept_mask"])
+        weights["concept"] = float(lw.get("concept", 0.5))
+        bmask = batch["boundary_mask"].float()[:, None, None].expand_as(batch["boundary"])
+        map_logits = out["maps"][:, 0].float()
+        if map_logits.shape[-1] != batch["boundary"].shape[-1]:
+            target = F.adaptive_avg_pool2d(batch["boundary"][:, None], map_logits.shape[-2:])[:, 0]
+            target = target / target.flatten(1).amax(1).clamp(min=1e-6)[:, None, None]
+            bmask = batch["boundary_mask"].float()[:, None, None].expand_as(target)
+        else:
+            target = batch["boundary"]
+        terms["map"] = masked_bce(map_logits, target, bmask)
+        weights["map"] = float(lw.get("map", 0.5))
+        terms["w_l1"] = out["w"].abs().sum()
+        weights["w_l1"] = float(lw.get("w_l1", 1e-4))
+        terms["residual"] = out["residual"].float().pow(2).mean()
+        weights["residual"] = float(lw.get("residual", 1e-3))
+
     dom = cfg["model"].get("domain") or {}
     if dom.get("enabled") and "domain_logits" in out:
         d = batch["domain_id"]

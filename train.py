@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from data.dataset import FaceFrameDataset  # noqa: E402
 from data.sampler import CellBalancedBatchSampler  # noqa: E402
-from evaluate import choose_threshold, compute_metrics, evaluate_split, predict, video_table  # noqa: E402
+from evaluate import choose_threshold, compute_metrics, concept_auc, concept_stats, evaluate_split, predict, video_table  # noqa: E402
 from models.build import build_model  # noqa: E402
 from models.domain import compute_domain_alpha  # noqa: E402
 from models.ema import EMA  # noqa: E402
@@ -211,11 +211,12 @@ def main() -> None:
                          torch.cuda.max_memory_allocated() / 1e9)
         train_time = time.time() - t0
 
-        pred = predict(ema.model, val_csv, device, num_workers=args.num_workers)
+        pred = predict(ema.model, val_csv, device, num_workers=args.num_workers, limit=cfg["data"].get("val_limit"))
         vt = video_table(pred)
         val_m = compute_metrics(pred, None)
         rec = {"epoch": epoch, "train_time_s": round(train_time, 1), "val_video_auc": val_m["video_auc"],
-               "val_frame_auc": val_m["frame_auc"], **{f"train_{k}": round(v / max(n, 1), 5) for k, v in sums.items()}}
+               "val_frame_auc": val_m["frame_auc"], **{f"val_{k}": v for k, v in concept_stats(pred).items()},
+               **{f"train_{k}": round(v / max(n, 1), 5) for k, v in sums.items()}}
         history.append(rec)
         improved = val_m["video_auc"] > best_auc
         if improved:
@@ -224,8 +225,9 @@ def main() -> None:
             thr = choose_threshold(vt["label"].to_numpy(), vt["prob"].to_numpy())
             (run_dir / "val_threshold.json").write_text(json.dumps(thr, indent=2))
         (run_dir / "history.json").write_text(json.dumps(history, indent=2))
-        log.info("EPOCH %d done in %.0fs | val video AUC %.4f frame AUC %.4f%s", epoch, train_time,
-                 val_m["video_auc"], val_m["frame_auc"], " *best*" if improved else "")
+        log.info("EPOCH %d done in %.0fs | val video AUC %.4f frame AUC %.4f %s%s", epoch, train_time,
+                 val_m["video_auc"], val_m["frame_auc"], {k: round(v, 4) for k, v in concept_stats(pred).items()},
+                 " *best*" if improved else "")
 
     end = datetime.now()
     log.info("Training done. Best val video AUC %.4f at epoch %d", best_auc, best_epoch)
@@ -246,8 +248,17 @@ def main() -> None:
             m = evaluate_split(best_model, REPO_ROOT / test_csv, run_dir, run_dir.name, device, threshold,
                                num_workers=args.num_workers)
             row[f"{m['split']}_video_auc"] = round(m["video_auc"], 4)
-            log.info("TEST %s: video AUC %.4f frame AUC %.4f EER %.4f acc %.4f", m["split"], m["video_auc"],
-                     m["frame_auc"], m["eer"], m["acc"])
+            log.info("TEST %s: video AUC %.4f frame AUC %.4f EER %.4f acc %.4f concept_share %s gate_mean %s",
+                     m["split"], m["video_auc"], m["frame_auc"], m["eer"], m["acc"], m.get("concept_share"), m.get("gate_mean"))
+        if cfg["model"].get("head") == "concept":
+            cache_root = Path(cfg["paths"]["cache_root"])
+            cauc = {}
+            for set_name in ("sbi_val", "sbi_test"):
+                csv_path = cache_root / set_name / f"{set_name}.csv"
+                if csv_path.exists():
+                    cauc[set_name] = concept_auc(best_model, csv_path, device, args.num_workers)
+                    log.info("Concept AUC on %s: %s", set_name, {k: round(v, 3) for k, v in cauc[set_name].items()})
+            (run_dir / "metrics_concepts.json").write_text(json.dumps(cauc, indent=2))
         row["end"] = datetime.now().isoformat(timespec="minutes")
     append_experiment(row)
     log.info("experiments.csv updated: %s", row)

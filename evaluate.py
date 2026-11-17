@@ -88,38 +88,74 @@ def compute_metrics(pred: pd.DataFrame, threshold: Optional[float]) -> Dict[str,
 
 # ----------------------------------------------------------------------------- inference
 
-def make_degrade_fn(spec: Optional[str]):
-    if spec in (None, "", "clean"):
-        return None
-    raise NotImplementedError(f"--degrade {spec} is filled in by T4.3")
+def degrade_args(csv_path: str, spec: Optional[str]) -> Dict:
+    """Dataset kwargs for an evaluation degradation (T4.3)."""
+    from data.degrade import build_h264_cache, image_degrade_fn, parse
+    from utils.config import load_paths
+    kind, val = parse(spec)
+    if kind == "h264":
+        paths = load_paths()
+        return {"path_map": build_h264_cache(str(csv_path), int(val), paths["data_root"], paths["cache_root"])}
+    return {"degrade_fn": image_degrade_fn(spec)}
 
 
 @torch.no_grad()
 def predict(model: torch.nn.Module, csv_path: str, device: torch.device, batch_size: int = 128,
             num_workers: int = 6, limit: Optional[int] = None, degrade: Optional[str] = None,
             random_scores: bool = False) -> pd.DataFrame:
-    make_degrade_fn(degrade)
-    ds = FaceFrameDataset(csv_path, train=False, limit=limit)
+    ds = FaceFrameDataset(csv_path, train=False, limit=limit, **degrade_args(csv_path, degrade))
     dl = DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=num_workers,
                     pin_memory=device.type == "cuda", persistent_workers=False)
     rows = []
     rng = np.random.default_rng(0)
     if model is not None:
         model.eval()
-    extra_keys = []
     for batch in dl:
+        extra: Dict[str, np.ndarray] = {}
         if random_scores:
             probs = rng.random(len(batch["label"]))
         else:
             x = batch["image"].to(device, non_blocking=True)
             with torch.autocast(device_type=device.type, dtype=torch.bfloat16, enabled=device.type == "cuda"):
                 out = model(x)
-            probs = torch.sigmoid(out["logit"].float()).cpu().numpy()
+            logit = out["logit"].float()
+            probs = torch.sigmoid(logit).cpu().numpy()
+            extra["logit"] = logit.cpu().numpy()
+            if "concepts" in out:
+                cs = torch.sigmoid(out["concepts"].float()).cpu().numpy()
+                for k in range(cs.shape[1]):
+                    extra[f"c{k + 1}"] = cs[:, k]
+                extra["concept_part"] = out["concept_part"].float().cpu().numpy()
+            if "gate" in out:
+                extra["gate"] = out["gate"].float().cpu().numpy()
         for j in range(len(probs)):
-            rows.append({"video_id": batch["video_id"][j], "frame_path": batch["path"][j],
-                         "label": int(batch["label"][j]), "method": batch["method"][j], "prob": float(probs[j])})
-    del extra_keys
+            row = {"video_id": batch["video_id"][j], "frame_path": batch["path"][j],
+                   "label": int(batch["label"][j]), "method": batch["method"][j], "prob": float(probs[j])}
+            row.update({k: float(v[j]) for k, v in extra.items()})
+            rows.append(row)
     return pd.DataFrame(rows)
+
+
+def concept_stats(pred: pd.DataFrame) -> Dict[str, Optional[float]]:
+    """Concept share = Var(w . sigmoid(c)) / Var(logit) over the split; mean fusion gate."""
+    out: Dict[str, Optional[float]] = {}
+    if "concept_part" in pred and pred["logit"].var() > 0:
+        out["concept_share"] = float(pred["concept_part"].var() / pred["logit"].var())
+    if "gate" in pred:
+        out["gate_mean"] = float(pred["gate"].mean())
+    return out
+
+
+def concept_auc(model, sbi_csv: Path, device: torch.device, num_workers: int = 6) -> Dict[str, float]:
+    """Per-concept AUC on a fixed SBI set: positives = images whose recipe label for that concept is > 0."""
+    labels = pd.read_csv(sbi_csv)
+    pred = predict(model, str(sbi_csv), device, num_workers=num_workers)
+    pred = pred.merge(labels[["frame_path"] + [f"c{k}" for k in range(1, 11)]], on="frame_path", suffixes=("", "_true"))
+    out = {}
+    for k in range(1, 11):
+        y = (pred[f"c{k}_true"] > 0).astype(int).to_numpy()
+        out[f"c{k}"] = safe_auc(y, pred[f"c{k}"].to_numpy())
+    return out
 
 
 # ----------------------------------------------------------------------------- checkpoint
@@ -173,6 +209,7 @@ def evaluate_split(model, csv_path: str, out_dir: Path, run_name: str, device: t
     pred = predict(model, csv_path, device, batch_size, num_workers, limit, degrade, random_scores)
     metrics = {"run": run_name, "split": split, "degrade": degrade or "clean"}
     metrics.update(compute_metrics(pred, threshold))
+    metrics.update(concept_stats(pred))
     metrics.setdefault("concept_share", None)
     metrics.setdefault("gate_mean", None)
     if extra:

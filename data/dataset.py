@@ -73,7 +73,12 @@ def compress_augment(img: np.ndarray, cfg: Dict) -> np.ndarray:
 
 class FaceFrameDataset(Dataset):
     def __init__(self, csv_path: str, train: bool, augment_cfg: Optional[Dict] = None,
-                 sbi_fn: Optional[Callable] = None, limit: Optional[int] = None) -> None:
+                 sbi_fn: Optional[Callable] = None, limit: Optional[int] = None,
+                 degrade_fn: Optional[Callable] = None, path_map: Optional[Dict[str, str]] = None) -> None:
+        """degrade_fn: applied to every loaded crop after augmentation (evaluation degradations and the
+        student's input degradation). path_map: frame_path -> substitute path (H.264 decoded cache)."""
+        self.degrade_fn = degrade_fn
+        self.path_map = path_map
         self.csv_path = str(csv_path)
         df = pd.read_csv(csv_path, dtype={"video_id": str, "source_id": str}, keep_default_na=False)
         bad = df["frame_path"].str.contains(r"(?:^|/)frames/", regex=True)
@@ -126,9 +131,14 @@ class FaceFrameDataset(Dataset):
     def __getitem__(self, index: int) -> Dict:
         if index >= len(self):
             return self._sbi_item(index - len(self))
-        img = load_rgb(self.root / self.paths[index])
+        path = self.paths[index]
+        if self.path_map is not None:
+            path = self.path_map.get(path, path)
+        img = load_rgb(self.root / path)
         if self.train:
             img = light_augment(img, self.augment_cfg)
+        if self.degrade_fn is not None:
+            img = np.ascontiguousarray(self.degrade_fn(img))
         return self._base_item(index, img, self.methods[index], int(self.labels[index]))
 
     def _sbi_item(self, i: int) -> Dict:
@@ -146,6 +156,8 @@ class FaceFrameDataset(Dataset):
         sbi_img, concepts, boundary = self.sbi_fn(img, self.video_ids[i], self.paths[i], flipped)
         if self.train:
             sbi_img = np.ascontiguousarray(compress_augment(sbi_img, self.augment_cfg))
+        if self.degrade_fn is not None:
+            sbi_img = np.ascontiguousarray(self.degrade_fn(sbi_img))
         item = self._base_item(i, sbi_img, "sbi", 1)
         item["concepts"] = torch.as_tensor(concepts, dtype=torch.float32)
         item["boundary"] = torch.as_tensor(boundary, dtype=torch.float32)
