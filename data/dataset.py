@@ -40,9 +40,9 @@ def jpeg(img: np.ndarray, quality: int) -> np.ndarray:
     return cv2.cvtColor(cv2.imdecode(buf, cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)
 
 
-def light_augment(img: np.ndarray, cfg: Dict) -> np.ndarray:
+def light_augment(img: np.ndarray, cfg: Dict, allow_flip: bool = True, compress: bool = True) -> np.ndarray:
     """Flip p=0.5, small colour jitter, JPEG q60-100 p=0.3, Gaussian blur p=0.1 (T1.4 defaults)."""
-    if random.random() < cfg.get("flip", 0.5):
+    if allow_flip and random.random() < cfg.get("flip", 0.5):
         img = img[:, ::-1]
     cj = cfg.get("color_jitter", 0.1)
     if cj > 0:
@@ -56,6 +56,12 @@ def light_augment(img: np.ndarray, cfg: Dict) -> np.ndarray:
         gray = f.mean(axis=2, keepdims=True)
         f = gray + (f - gray) * s
         img = np.clip(f, 0, 255).astype(np.uint8)
+    if compress:
+        img = compress_augment(img, cfg)
+    return np.ascontiguousarray(img)
+
+
+def compress_augment(img: np.ndarray, cfg: Dict) -> np.ndarray:
     if random.random() < cfg.get("jpeg_p", 0.3):
         lo, hi = cfg.get("jpeg_q", [60, 100])
         img = jpeg(img, random.randint(lo, hi))
@@ -129,9 +135,17 @@ class FaceFrameDataset(Dataset):
         if self.sbi_fn is None:
             raise RuntimeError("SBI index requested but no sbi_fn was given")
         img = load_rgb(self.root / self.paths[i])
-        sbi_img, concepts, boundary = self.sbi_fn(img, self.video_ids[i], self.paths[i])
+        flipped = False
         if self.train:
-            sbi_img = light_augment(sbi_img, self.augment_cfg)
+            # flip + colour jitter BEFORE blending (landmarks are mirrored to match), compression AFTER,
+            # so the boundary map stays aligned with the image and artefacts look like a re-encoded fake.
+            flipped = random.random() < self.augment_cfg.get("flip", 0.5)
+            if flipped:
+                img = np.ascontiguousarray(img[:, ::-1])
+            img = light_augment(img, self.augment_cfg, allow_flip=False, compress=False)
+        sbi_img, concepts, boundary = self.sbi_fn(img, self.video_ids[i], self.paths[i], flipped)
+        if self.train:
+            sbi_img = np.ascontiguousarray(compress_augment(sbi_img, self.augment_cfg))
         item = self._base_item(i, sbi_img, "sbi", 1)
         item["concepts"] = torch.as_tensor(concepts, dtype=torch.float32)
         item["boundary"] = torch.as_tensor(boundary, dtype=torch.float32)

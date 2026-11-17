@@ -1,0 +1,29 @@
+name: c1_clip_lora
+parent: b1_swin
+notes: CLIP ViT-L/14 (OpenAI) + LoRA r16 on qkv, linear head on normalized cls; no SBI
+model:
+  backbone: clip_vitl14_lora
+  lora: {r: 16, alpha: 32, dropout: 0.1}
+  freq_branch: none
+  fusion: none
+  head: linear
+  domain: {enabled: false}
+  grad_checkpointing: false
+  save_trainable_only: true
+data:
+  train: splits/ffpp_train.csv
+  val: splits/ffpp_val.csv
+  tests: [splits/ffpp_test.csv, splits/dfd_test.csv, splits/celebdf_test.csv]
+  sbi: false
+  cells: [real, Deepfakes, Face2Face, FaceSwap]
+  augment: {flip: 0.5, color_jitter: 0.1, jpeg_p: 0.3, jpeg_q: [60, 100], blur_p: 0.1}
+optim:
+  lr: {lora: 2.0e-4, heads: 1.0e-3}
+  weight_decay: 0.05
+  epochs: 12
+  steps_per_epoch: 1500
+  batch_size: 32
+  warmup_epochs: 1
+  ema: 0.999
+  grad_clip: 1.0
+  precision: bf16

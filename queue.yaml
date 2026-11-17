@@ -5,7 +5,15 @@ jobs:
     cmd: python train.py --config configs/b1_swin.yaml --seed 42
   - name: landmarks_ffpp_real
     cmd: python scripts/extract_landmarks.py
+  - name: sbi_check_full
+    cmd: python scripts/sbi_check.py
+    after: landmarks_ffpp_real
   - name: b2_swin_dann_s42
     cmd: python train.py --config configs/b2_swin_dann.yaml --seed 42
   - name: old_ckpt_ffpp_v2_eval
     cmd: python scripts/eval_old_ckpt.py --ckpt outputs_ffpp_v2_20260423_172121/best_swin_deepfake.pth --name ffpp_v2
+  - name: c1_clip_lora_s42
+    cmd: python train.py --config configs/c1_clip_lora.yaml --seed 42
+  - name: c2_clip_sbi_s42
+    cmd: python train.py --config configs/c2_clip_sbi.yaml --seed 42
+    after: landmarks_ffpp_real

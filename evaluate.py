@@ -128,12 +128,21 @@ def load_model_from_ckpt(ckpt_path: str, device: torch.device) -> (torch.nn.Modu
     """Loads best.pth written by train.py and returns the model holding the EMA weights."""
     ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     cfg = ckpt["config"]
-    model = build_model(cfg["model"], pretrained=False)
+    trainable_only = bool(ckpt.get("trainable_only"))
+    # trainable-only checkpoints (CLIP + LoRA) hold just the trained weights: rebuild the frozen
+    # pretrained backbone first, then overlay them.
+    model = build_model(cfg["model"], pretrained=trainable_only)
     state = ckpt.get("ema") or ckpt["model"]
     missing, unexpected = model.load_state_dict(state, strict=False)
-    allowed_missing = [k for k in missing if "lora" not in k]  # trainable-only checkpoints may omit frozen weights
-    if unexpected or (allowed_missing and not ckpt.get("trainable_only")):
-        raise RuntimeError(f"Checkpoint mismatch: missing={missing[:5]} unexpected={unexpected[:5]}")
+    if unexpected:
+        raise RuntimeError(f"Checkpoint has unexpected keys: {unexpected[:5]}")
+    if trainable_only:
+        trained = {n for n, p in model.named_parameters() if p.requires_grad}
+        not_loaded = sorted(trained & set(missing))
+        if not_loaded:
+            raise RuntimeError(f"Trainable weights missing from checkpoint: {not_loaded[:5]}")
+    elif missing:
+        raise RuntimeError(f"Checkpoint missing keys: {missing[:5]}")
     return model.to(device).eval(), ckpt
 
 
