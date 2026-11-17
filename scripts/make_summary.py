@@ -51,7 +51,8 @@ def main() -> None:
                        ("c2_clip_sbi", "g1_concepts", "The concept bottleneck"),
                        ("g1_concepts", "g2_dct", "The DCT branch with gated fusion"),
                        ("g1_concepts", "g2_fft", "The FFT branch with gated fusion"),
-                       ("b1_swin", "b2_swin_dann", "DANN on Swin-B"),
+                       ("b1_swin", "b2_swin_dann", "DANN on Swin-B with real as a domain (runbook spec)"),
+                       ("b1_swin", "b2f_swin_dann_fake", "DANN on Swin-B over fake domains only"),
                        ("g3_full", "a3_linear_head", "Removing the concept head from G3 (A3)"),
                        ("s0_student", "s3_kd_full", "Full distillation over a teacher-free student")]:
         if have(a) and have(b):
