@@ -46,3 +46,17 @@ def test_clip_lora_shapes_and_trainable_count():
     assert out["logit"].shape == (2,) and out["z"].shape == (2, 1024)
     assert feats["patches"].shape == (2, 1024, 16, 16)
     assert torch.allclose(feats["cls"].norm(dim=1), torch.ones(2), atol=1e-4)
+
+
+def test_swin_domain_head_sees_classifier_features():
+    """Shrinking the InstanceNorm gamma (the B2 collapse route) must change neither the class nor the domain
+    logits while it stays above LayerNorm eps: the adversary gains nothing by shrinking it."""
+    torch.manual_seed(0)
+    m = build_model({"backbone": "swin_b", "domain": {"enabled": True, "num_domains": 4}}, pretrained=False).eval()
+    x = torch.rand(2, 3, 224, 224)
+    with torch.no_grad():
+        a = m(x, alpha=1.0)
+        m.feat_norm.weight.mul_(0.1)
+        b = m(x, alpha=1.0)
+    assert torch.allclose(a["domain_logits"], b["domain_logits"], atol=1e-3)
+    assert torch.allclose(a["logits2"], b["logits2"], atol=1e-3)

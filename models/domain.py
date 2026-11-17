@@ -32,7 +32,13 @@ def compute_domain_alpha(progress: float, gamma: float = 10.0) -> float:
 
 
 class DomainHead(nn.Module):
-    """GRL -> Linear -> ReLU -> Dropout -> Linear(num_domains)."""
+    """GRL -> Linear -> ReLU -> Dropout -> Linear(num_domains).
+
+    Callers must feed the SAME representation the real/fake classifier sees (for Swin: after the head's
+    LayerNorm). In B2 / B2-fake the domain head read the features before that LayerNorm, so the adversary could
+    confuse it by shrinking the single InstanceNorm gamma (5e-4 by epoch 2, then through 0) while the
+    scale-invariant classifier gave no resisting gradient, until the real/fake signal flipped and vanished.
+    """
 
     def __init__(self, in_features: int, num_domains: int, hidden: int = 256, dropout: float = 0.3) -> None:
         super().__init__()

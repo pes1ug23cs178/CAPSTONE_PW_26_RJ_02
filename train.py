@@ -67,9 +67,18 @@ def make_train_loader(cfg: Dict, seed: int, num_workers: int) -> (DataLoader, Ce
 def make_optimizer(model, cfg: Dict, total_steps: int, warmup_steps: int):
     groups = model.param_groups(cfg["optim"]["lr"])
     groups = [g for g in groups if any(p.requires_grad for p in g["params"])]
+    wd = float(cfg["optim"].get("weight_decay", 0.05))
+    split_groups = []
     for g in groups:
-        g["params"] = [p for p in g["params"] if p.requires_grad]
-    opt = torch.optim.AdamW(groups, weight_decay=float(cfg["optim"].get("weight_decay", 0.05)))
+        params = [p for p in g["params"] if p.requires_grad]
+        # no weight decay on norm scales/shifts and biases (1-D params): decay drove the Swin InstanceNorm
+        # gamma to ~0.005 even in B1, close to where the following LayerNorm's eps erases the features
+        decay = [p for p in params if p.ndim > 1]
+        no_decay = [p for p in params if p.ndim <= 1]
+        for ps, w, suffix in ((decay, wd, ""), (no_decay, 0.0, "_nodecay")):
+            if ps:
+                split_groups.append({**g, "params": ps, "weight_decay": w, "name": g.get("name", "") + suffix})
+    opt = torch.optim.AdamW(split_groups, weight_decay=wd)
     min_factor = float(cfg["optim"].get("min_lr_factor", 0.01))
 
     def lr_lambda(step: int) -> float:

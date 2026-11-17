@@ -30,6 +30,10 @@ jobs:
   - name: c2_clip_sbi_s42
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/c2_clip_sbi.yaml --seed 42
     after: sbi_check_full
+  - name: b2_swin_dann_s42_r2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/b2_swin_dann.yaml --seed 42
+  - name: b2f_swin_dann_fake_s42_r2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/b2f_swin_dann_fake.yaml --seed 42
   - name: g1_concepts_s42
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/g1_concepts.yaml --seed 42
     after: sbi_eval_sets

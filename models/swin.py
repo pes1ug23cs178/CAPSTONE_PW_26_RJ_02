@@ -47,10 +47,12 @@ class SwinDetector(nn.Module):
             z = self.feat_norm(feats.unsqueeze(1)).squeeze(1)
         else:
             z = self.feat_norm(feats)
-        logits2 = self.head(z)
+        h = self.head[0](z)  # LayerNorm: the representation the classifier actually uses
+        logits2 = self.head[2](self.head[1](h))
         out = {"logits2": logits2, "logit": logits2[:, 1] - logits2[:, 0], "z": z}
         if self.domain_enabled:
-            out["domain_logits"] = self.domain_head(z, alpha)
+            # domain head reads the same normalised features as the classifier (see models/domain.py)
+            out["domain_logits"] = self.domain_head(h, alpha)
         return out
 
     def param_groups(self, lr: Dict[str, float]) -> List[Dict]:
