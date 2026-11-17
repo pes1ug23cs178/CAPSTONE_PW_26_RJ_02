@@ -41,3 +41,9 @@ celebdf_v2/outputs_*/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Sprint outputs (never commit)
+runs/
+cache/
+release/
+results/app_screens/*.mp4

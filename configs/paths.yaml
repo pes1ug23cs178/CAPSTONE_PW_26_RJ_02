@@ -1,0 +1,4 @@
+# Paths are relative to the repository root unless absolute.
+data_root: .          # contains ff++/faces and celebdf_v2/celebdf_v2/faces
+runs_root: runs
+cache_root: cache
