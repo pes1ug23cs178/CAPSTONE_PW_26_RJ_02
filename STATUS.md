@@ -51,6 +51,7 @@ See `splits/counts.md` for the full table.
 - T1.7 done, 2026-11-17 11:50, `queue_runner.py`; ordered dependency, failure -> dependent blocked, restart skips done jobs
 - T1.8 done, 2026-11-17 12:10, B1/B2 configs, queue running B1 (epoch 1 val video AUC 0.992); old-checkpoint evaluation queued
 - T2.1 done (code), 2026-11-17 12:20, landmark extraction: 64/64 test crops OK, check image shows points on eyes, nose, mouth and jaw; full run queued. Note: face-alignment's torch.compile needs Triton (missing on Windows) and silently failed every call; fixed with `TORCHDYNAMO_DISABLE=1`
+- T2.1 done, 2026-11-17 13:07, full landmark run: 0 failures / 27,417 FF++ train+val real crops (34 min); `cache/landmarks_check.png` shows points on eyes, brows, nose, mouth, jaw
 - T2.2 done (code), 2026-11-17 12:15, CLIP ViT-L/14 + LoRA: 1.573 M LoRA params; cls L2-normalized; patches 1024x16x16; batch 32 peak 7.5 GB (no grad checkpointing needed); trainable-only checkpoints 12.6 MB, reload exact
 - T2.4 done, 2026-11-17 12:25, SBI engine: 204 unit tests pass; `cache/sbi_check.png` drawn (**a human should look at it**); loader with SBI 784 img/s
 - T2.3/T2.5 queued (C1, C2)
