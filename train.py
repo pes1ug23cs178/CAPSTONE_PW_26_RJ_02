@@ -215,6 +215,7 @@ def main() -> None:
     val_csv = REPO_ROOT / cfg["data"]["val"]
 
     best_auc, best_epoch, history = -1.0, -1, []
+    best_key = (-1.0, -1.0)
     global_step = 0
     for epoch in range(1, epochs + 1):
         sampler.set_epoch(epoch)
@@ -245,8 +246,11 @@ def main() -> None:
                "val_frame_auc": val_m["frame_auc"], **{f"val_{k}": v for k, v in concept_stats(pred).items()},
                **{f"train_{k}": round(v / max(n, 1), 5) for k, v in sums.items()}}
         history.append(rec)
-        improved = val_m["video_auc"] > best_auc
+        # select on val video AUC; ties (C1 saturated at 1.000 from epoch 3) are broken by val frame AUC
+        key = (round(val_m["video_auc"], 6), round(val_m["frame_auc"], 6))
+        improved = key > best_key
         if improved:
+            best_key = key
             best_auc, best_epoch = val_m["video_auc"], epoch
             save_best(run_dir / "best.pth", model, ema, cfg, epoch, best_auc)
             thr = choose_threshold(vt["label"].to_numpy(), vt["prob"].to_numpy())
