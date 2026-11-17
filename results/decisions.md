@@ -1,0 +1,1 @@
+- 2026-11-18 05:06 G3 base = g2_fft: g2_fft best on val ({'g1_concepts': 0.9999, 'g2_dct': 0.9999, 'g2_fft': 1.0})

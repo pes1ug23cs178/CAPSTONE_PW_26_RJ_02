@@ -1,0 +1,66 @@
+name: a3_linear_head
+parent: g3_full
+notes: G3 with the concept head + decision layer replaced by Linear(512 -> 1) on z
+model:
+  backbone: clip_vitl14_lora
+  lora:
+    r: 16
+    alpha: 32
+    dropout: 0.1
+  freq_branch: fft
+  fusion: gated
+  head: linear
+  domain:
+    enabled: true
+    num_domains: 5
+    dann_weight: 0.1
+    mmd_weight: 0.1
+    mmd_on: fake
+    domain_on: fake
+  grad_checkpointing: false
+  save_trainable_only: true
+  num_concepts: 10
+  z_dim: 512
+data:
+  train: splits/ffpp_train.csv
+  val: splits/ffpp_val.csv
+  tests:
+  - splits/ffpp_test.csv
+  - splits/dfd_test.csv
+  - splits/celebdf_test.csv
+  sbi: true
+  cells:
+  - real
+  - sbi
+  - Deepfakes
+  - Face2Face
+  - FaceSwap
+  cell_weights:
+    real: 3
+    sbi: 2
+    Deepfakes: 1
+    Face2Face: 1
+    FaceSwap: 1
+  augment:
+    flip: 0.5
+    color_jitter: 0.1
+    jpeg_p: 0.3
+    jpeg_q:
+    - 60
+    - 100
+    blur_p: 0.1
+optim:
+  lr:
+    lora: 0.0002
+    freq: 0.002
+    fusion: 0.001
+    heads: 0.001
+  weight_decay: 0.05
+  epochs: 12
+  steps_per_epoch: 1500
+  batch_size: 32
+  warmup_epochs: 1
+  ema: 0.999
+  grad_clip: 1.0
+  precision: bf16
+loss: {}
