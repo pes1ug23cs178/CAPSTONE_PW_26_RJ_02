@@ -32,11 +32,16 @@ jobs:
     after: sbi_check_full
   - name: b2_swin_dann_s42_r2
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/b2_swin_dann.yaml --seed 42
+  - name: c2q_clip_sbi_quarter_s42
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/c2q_clip_sbi_quarter.yaml --seed 42
+  - name: pick_sbi_share
+    cmd: python scripts/pick_sbi_share.py
+    after: c2q_clip_sbi_quarter_s42
   - name: b2f_swin_dann_fake_s42_r2
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/b2f_swin_dann_fake.yaml --seed 42
   - name: g1_concepts_s42
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/g1_concepts.yaml --seed 42
-    after: sbi_eval_sets
+    after: pick_sbi_share
   - name: g2_dct_s42
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/g2_dct.yaml --seed 42
     after: smoke_grace_g2
