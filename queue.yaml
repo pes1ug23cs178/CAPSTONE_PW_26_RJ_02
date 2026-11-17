@@ -21,6 +21,8 @@ jobs:
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/b2_swin_dann.yaml --seed 42
   - name: old_ckpt_ffpp_v2_eval
     cmd: python scripts/run_snapshot.py -- python scripts/eval_old_ckpt.py --ckpt outputs_ffpp_v2_20260423_172121/best_swin_deepfake.pth --name ffpp_v2
+  - name: old_ckpt_ffpp_v2_eval_r2
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_old_ckpt.py --ckpt outputs_ffpp_v2_20260423_172121/best_swin_deepfake.pth --name ffpp_v2
   - name: b2f_swin_dann_fake_s42
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/b2f_swin_dann_fake.yaml --seed 42
   - name: c1_clip_lora_s42

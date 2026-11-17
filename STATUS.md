@@ -70,8 +70,11 @@ See `splits/counts.md` for the full table.
 | Run | FF++ test | DFD | Celeb-DF (interim) | Val video AUC (best epoch) | GPU h |
 | --- | --- | --- | --- | --- | --- |
 | B1 Swin-B `b1_swin_s42_20261117-1307` | 0.9948 | 0.9104 | 0.8992 | 0.9942 (8) | 0.78 |
+| B2 Swin-B + DANN, real as a domain (spec) | 0.9987 | 0.9140 | 0.8696 | 0.9988 (2) | 0.92 |
 
 - B1 checks: in-domain 0.9948 (< 0.995 alarm), cross-dataset max 0.910 (< 0.95 alarm). Celeb-DF fakes vs Celeb-real only: 0.911; vs YouTube-real only: 0.881, so no single real group drives the number. Celeb-DF fakes get low probabilities (mean 0.26), so accuracy at the FF++ threshold is 0.71 despite AUC 0.90: a calibration shift across datasets.
+- **B2 collapsed** after epoch 3: val video AUC 0.999 (ep 2) -> 0.06 (ep 4, inverted) -> 0.500 (ep 8-9, constant output). Its best checkpoint is epoch 2 (GRL alpha 0.76 by then), so its test numbers are essentially an early-stopped B1 and do not show a working DANN. See decision 14:25.
+- **Leakage alarm (rule: in-domain test AUC > 0.995) for B2's FF++ test 0.9987: checked, no leakage found.** Split test passes (6/6); 0 frames paths read; no DFD actor in FF++ training; only FF++ in training. Per-method: real vs Deepfakes 0.999 (114 videos), Face2Face 0.997 (20), FaceSwap 0.995 (6). The FF++ test is 81% Deepfakes (the easiest method) and lacks NeuralTextures, so near-perfect in-domain AUC is expected. **Please confirm (human check requested by the runbook).**
 - B1 measured: 4 min/epoch (~200 img/s), 47 min total + 4 min test evaluation.
 
 ## Decision rules applied

@@ -26,7 +26,8 @@ def main() -> None:
     ap.add_argument("--name", required=True)
     args = ap.parse_args()
     device = torch.device("cuda")
-    ck = torch.load(args.ckpt, map_location="cpu", weights_only=False)
+    ckpt_path = Path(args.ckpt) if Path(args.ckpt).is_absolute() else REPO_ROOT / args.ckpt  # jobs run from a code snapshot
+    ck = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     state = ck.get("ema_state_dict") or ck["model_state_dict"]
     old_args = ck.get("args", {})
     model = SwinDetector(old_args.get("model_name", "swin_base_patch4_window7_224"),
