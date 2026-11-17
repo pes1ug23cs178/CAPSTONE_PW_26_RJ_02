@@ -1,6 +1,11 @@
-# GPU run queue (see runbook "GPU run queue"). queue_runner.py re-reads this file between jobs.
+# GPU run queue (see runbook "GPU run queue"). queue_runner.py re-reads this file between jobs
+# and runs the first pending job (in file order) whose `after` dependency is done.
 jobs:
   - name: b1_swin_s42
     cmd: python train.py --config configs/b1_swin.yaml --seed 42
+  - name: landmarks_ffpp_real
+    cmd: python scripts/extract_landmarks.py
   - name: b2_swin_dann_s42
     cmd: python train.py --config configs/b2_swin_dann.yaml --seed 42
+  - name: old_ckpt_ffpp_v2_eval
+    cmd: python scripts/eval_old_ckpt.py --ckpt outputs_ffpp_v2_20260423_172121/best_swin_deepfake.pth --name ffpp_v2
