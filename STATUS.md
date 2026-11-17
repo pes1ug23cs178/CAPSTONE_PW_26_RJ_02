@@ -6,6 +6,8 @@
 - GPU job: `c1_clip_lora_s42` (started 15:30; 105 img/s, ~8.5 min/epoch, expected end ~17:20). Estimated next: C2 ~19:15, B2 r2 ~20:10, B2-fake r2 ~21:05, G1 ~23:00, G2 DCT ~01:00, G2-fft ~03:00, G3 ~05:00, A3 ~07:00 (18 Nov), then robustness sweep, G3 seed 1, SBI pool, teacher cache, students.
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
+- Extra work queued after the main pipeline (user asked to use spare GPU time): runbook fillers G3 seed 2, S3 seed 2, **D2** (G3 + unsupervised adaptation to 5,978 unlabelled non-test Celeb-DF videos; dataset-level DANN), B1 seed 1; then **X1** (G3 trained on FF++ + DFD, tested on FF++ and Celeb-DF), then a results refresh (eval, tables, summary, release).
+
 ## Needs a human
 
 0. A CARLA simulator (`CarlaUnreal-Win64-Shipping.exe`, another project on this PC) held the GPU at 99% until ~12:27 on 17 Nov; it has since closed and B1 went from 67 to ~198 img/s. **Please keep CARLA (or any other GPU program) closed this week**: with it open, GPU memory runs out and Windows silently swaps it to RAM, which stalled training for 10 minutes once.
