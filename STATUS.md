@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `b2_swin_dann_s42` (started 14:03, expected end ~15:00), then old-checkpoint evaluation, C1, C2, G1, G2, G2-fft, G3, A3, robustness, G3 seed 1, t-SNE, SBI pool, teacher cache, S0, S2, S3, S3 seed 1. See `queue.yaml`.
+- GPU job: `c1_clip_lora_s42` (started 15:30; 105 img/s, ~8.5 min/epoch, expected end ~17:20). Estimated next: C2 ~19:15, B2 r2 ~20:10, B2-fake r2 ~21:05, G1 ~23:00, G2 DCT ~01:00, G2-fft ~03:00, G3 ~05:00, A3 ~07:00 (18 Nov), then robustness sweep, G3 seed 1, SBI pool, teacher cache, students.
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
 ## Needs a human
