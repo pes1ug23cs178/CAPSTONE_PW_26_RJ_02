@@ -95,6 +95,9 @@ jobs:
   - name: make_tables
     cmd: python scripts/run_snapshot.py -- python scripts/make_tables.py
     after: final_eval_all
+  - name: make_summary
+    cmd: python scripts/run_snapshot.py -- python scripts/make_summary.py
+    after: make_tables
   - name: make_release
     cmd: python scripts/run_snapshot.py -- python scripts/make_release.py
     after: make_tables
