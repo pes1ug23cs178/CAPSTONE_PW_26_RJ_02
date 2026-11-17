@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `landmarks_ffpp_real` (started 12:33), then `b1_swin_s42_r2` (B1 rerun), landmarks for ffpp_test, SBI sets, B2, C1, C2, G1, G2, G2-fft, G3, A3, robustness, G3 seed 1, t-SNE, SBI pool, teacher cache, S0, S2, S3, S3 seed 1. See `queue.yaml`.
+- GPU job: `b2_swin_dann_s42` (started 14:03, expected end ~15:00), then old-checkpoint evaluation, C1, C2, G1, G2, G2-fft, G3, A3, robustness, G3 seed 1, t-SNE, SBI pool, teacher cache, S0, S2, S3, S3 seed 1. See `queue.yaml`.
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
 ## Needs a human
@@ -52,6 +52,7 @@ See `splits/counts.md` for the full table.
 - T1.8 done, 2026-11-17 12:10, B1/B2 configs, queue running B1 (epoch 1 val video AUC 0.992); old-checkpoint evaluation queued
 - T2.1 done (code), 2026-11-17 12:20, landmark extraction: 64/64 test crops OK, check image shows points on eyes, nose, mouth and jaw; full run queued. Note: face-alignment's torch.compile needs Triton (missing on Windows) and silently failed every call; fixed with `TORCHDYNAMO_DISABLE=1`
 - T2.1 done, 2026-11-17 13:07, full landmark run: 0 failures / 27,417 FF++ train+val real crops (34 min); `cache/landmarks_check.png` shows points on eyes, brows, nose, mouth, jaw
+- T3.1 done, 2026-11-17 14:03, fixed SBI sets: sbi_val and sbi_test 2,000 images each from 140 videos; regions full face 818-837, mouth 507-510, eyes 364-385, nose/cheeks 287-292; each transform in 476-1,060 images. FF++ test real landmarks: 0 / 4,400 failures
 - T2.2 done (code), 2026-11-17 12:15, CLIP ViT-L/14 + LoRA: 1.573 M LoRA params; cls L2-normalized; patches 1024x16x16; batch 32 peak 7.5 GB (no grad checkpointing needed); trainable-only checkpoints 12.6 MB, reload exact
 - T2.4 done, 2026-11-17 12:25, SBI engine: 204 unit tests pass; `cache/sbi_check.png` drawn (**a human should look at it**); loader with SBI 784 img/s
 - T2.3/T2.5 queued (C1, C2)
