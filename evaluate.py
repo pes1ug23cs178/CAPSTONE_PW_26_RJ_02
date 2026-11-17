@@ -102,7 +102,7 @@ def degrade_args(csv_path: str, spec: Optional[str]) -> Dict:
 @torch.no_grad()
 def predict(model: torch.nn.Module, csv_path: str, device: torch.device, batch_size: int = 128,
             num_workers: int = 6, limit: Optional[int] = None, degrade: Optional[str] = None,
-            random_scores: bool = False) -> pd.DataFrame:
+            random_scores: bool = False, keep_cls: Optional[Dict] = None) -> pd.DataFrame:
     ds = FaceFrameDataset(csv_path, train=False, limit=limit, **degrade_args(csv_path, degrade))
     dl = DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=num_workers,
                     pin_memory=device.type == "cuda", persistent_workers=False)
@@ -128,6 +128,9 @@ def predict(model: torch.nn.Module, csv_path: str, device: torch.device, batch_s
                 extra["concept_part"] = out["concept_part"].float().cpu().numpy()
             if "gate" in out:
                 extra["gate"] = out["gate"].float().cpu().numpy()
+            if keep_cls is not None and "cls" in out:
+                for j, pth in enumerate(batch["path"]):
+                    keep_cls[pth] = out["cls"][j].float().cpu().numpy().astype(np.float16)
         for j in range(len(probs)):
             row = {"video_id": batch["video_id"][j], "frame_path": batch["path"][j],
                    "label": int(batch["label"][j]), "method": batch["method"][j], "prob": float(probs[j])}
@@ -206,16 +209,21 @@ def evaluate_split(model, csv_path: str, out_dir: Path, run_name: str, device: t
                    random_scores: bool = False) -> Dict:
     split = Path(csv_path).stem
     tag = split + (f"_{degrade.replace(':', '')}" if degrade and degrade != "clean" else "")
-    pred = predict(model, csv_path, device, batch_size, num_workers, limit, degrade, random_scores)
+    cls_store: Dict = {}
+    pred = predict(model, csv_path, device, batch_size, num_workers, limit, degrade, random_scores, keep_cls=cls_store)
     metrics = {"run": run_name, "split": split, "degrade": degrade or "clean"}
     metrics.update(compute_metrics(pred, threshold))
     metrics.update(concept_stats(pred))
+    from explain.video_cues import cue_summary, video_cues
+    cues = video_cues(pred, cls_store or None)
+    metrics.update(cue_summary(cues))
     metrics.setdefault("concept_share", None)
     metrics.setdefault("gate_mean", None)
     if extra:
         metrics.update(extra)
     out_dir.mkdir(parents=True, exist_ok=True)
     pred.to_csv(out_dir / f"predictions_{tag}.csv", index=False)
+    cues.to_csv(out_dir / f"video_cues_{tag}.csv", index=False)
     (out_dir / f"metrics_{tag}.json").write_text(json.dumps(metrics, indent=2))
     plot_roc(pred, out_dir / f"roc_{tag}.png", f"{run_name} | {tag}")
     return metrics

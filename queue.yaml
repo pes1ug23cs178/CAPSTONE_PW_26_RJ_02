@@ -7,9 +7,14 @@ jobs:
     cmd: python train.py --config configs/g2_dct.yaml --override name=smoke_g2 optim.epochs=1 optim.steps_per_epoch=30 data.val_limit=400 --no-test-eval
   - name: landmarks_ffpp_real
     cmd: python scripts/extract_landmarks.py
+  - name: landmarks_ffpp_test_real
+    cmd: python scripts/extract_landmarks.py --splits ffpp_test --no-check-image
   - name: sbi_check_full
     cmd: python scripts/sbi_check.py
     after: landmarks_ffpp_real
+  - name: sbi_eval_sets
+    cmd: python scripts/make_sbi_sets.py
+    after: landmarks_ffpp_test_real
   - name: b2_swin_dann_s42
     cmd: python train.py --config configs/b2_swin_dann.yaml --seed 42
   - name: old_ckpt_ffpp_v2_eval
@@ -18,4 +23,28 @@ jobs:
     cmd: python train.py --config configs/c1_clip_lora.yaml --seed 42
   - name: c2_clip_sbi_s42
     cmd: python train.py --config configs/c2_clip_sbi.yaml --seed 42
-    after: landmarks_ffpp_real
+    after: sbi_check_full
+  - name: g1_concepts_s42
+    cmd: python train.py --config configs/g1_concepts.yaml --seed 42
+    after: sbi_eval_sets
+  - name: g2_dct_s42
+    cmd: python train.py --config configs/g2_dct.yaml --seed 42
+    after: smoke_grace_g2
+  - name: g2_fft_s42
+    cmd: python train.py --config configs/g2_fft.yaml --seed 42
+    after: smoke_grace_g2
+  - name: g3_full_s42
+    cmd: python scripts/make_g3_configs.py && python train.py --config configs/g3_full.yaml --seed 42
+    after: g2_fft_s42
+  - name: a3_linear_head_s42
+    cmd: python train.py --config configs/a3_linear_head.yaml --seed 42
+    after: g3_full_s42
+  - name: robustness_eval
+    cmd: python scripts/eval_all.py --models b1_swin b2_swin_dann c1_clip_lora c2_clip_sbi g1_concepts g2_dct g2_fft g3_full a3_linear_head
+    after: a3_linear_head_s42
+  - name: g3_full_s1
+    cmd: python train.py --config configs/g3_full.yaml --seed 1
+    after: g3_full_s42
+  - name: tsne_figure
+    cmd: python scripts/plot_tsne.py --models b1_swin g2_dct g3_full
+    after: robustness_eval
