@@ -64,6 +64,15 @@ See `splits/counts.md` for the full table.
 - T6.1-T6.4 code done: concept maps, contributions, intervention (all 10 off leaves b + r(z): test passes), Grad-CAM (Swin), Grad-CAM++ (student), attention rollout (CLIP), FAISS retrieval, calibration, explanation figure + metrics, Gradio app. App face crops: SFD detector + eye-level rotation, margin 1.02x the box (measured on 40 training crops; the runbook's 1.3x fallback is much looser than our training crops)
 - T7.2/T7.4 prep: `make_tables.py`, `make_release.py`, README, `docs/interfaces.md`, pinned `requirements.txt`; all queued after the training runs
 
+## Results so far (test video AUC; thresholds from FF++ val)
+
+| Run | FF++ test | DFD | Celeb-DF (interim) | Val video AUC (best epoch) | GPU h |
+| --- | --- | --- | --- | --- | --- |
+| B1 Swin-B `b1_swin_s42_20261117-1307` | 0.9948 | 0.9104 | 0.8992 | 0.9942 (8) | 0.78 |
+
+- B1 checks: in-domain 0.9948 (< 0.995 alarm), cross-dataset max 0.910 (< 0.95 alarm). Celeb-DF fakes vs Celeb-real only: 0.911; vs YouTube-real only: 0.881, so no single real group drives the number. Celeb-DF fakes get low probabilities (mean 0.26), so accuracy at the FF++ threshold is 0.71 despite AUC 0.90: a calibration shift across datasets.
+- B1 measured: 4 min/epoch (~200 img/s), 47 min total + 4 min test evaluation.
+
 ## Decision rules applied
 
 - 2026-11-17 12:31 **B1 crashed at epoch 3** (exit 1, run folder renamed `runs/_crashed_b1_swin_s42_20261117-1150`): I edited `data/dataset.py` while it trained, and Windows DataLoader workers re-import code from disk, so the epoch-3 validation workers loaded the new class. Fix: every queue job now runs through `scripts/run_snapshot.py`, which freezes a copy of the code in `runs/_code/` per job. B1 re-queued as `b1_swin_s42_r2`. Epoch 1-2 val video AUC before the crash: 0.992, 0.994.
