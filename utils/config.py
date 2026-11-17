@@ -8,12 +8,14 @@ from __future__ import annotations
 
 import argparse
 import copy
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import yaml
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+# GRACE_REPO_ROOT is set by scripts/run_snapshot.py when a job runs from a frozen copy of the code.
+REPO_ROOT = Path(os.environ.get("GRACE_REPO_ROOT") or Path(__file__).resolve().parents[1]).resolve()
 
 
 def _resolve(p: str) -> Path:
@@ -47,7 +49,10 @@ def apply_overrides(cfg: Dict[str, Any], overrides: List[str]) -> Dict[str, Any]
 
 
 def load_config(path: str, seed: Optional[int] = None, overrides: Optional[List[str]] = None) -> Dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as f:
+    p = Path(path)
+    if not p.is_absolute():
+        p = REPO_ROOT / p  # configs always come from the real repository (they may be written mid-queue)
+    with open(p, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f) or {}
     cfg = copy.deepcopy(cfg)
     cfg = apply_overrides(cfg, overrides or [])

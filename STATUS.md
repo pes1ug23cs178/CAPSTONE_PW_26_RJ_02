@@ -3,8 +3,8 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `b1_swin_s42`, started 2026-11-17 11:51. Measured epoch time 12.0 min train + 1.3 min val (67 img/s) -> expected end ~14:15 including test evaluation.
-- Next in queue: `landmarks_ffpp_real` (~1.6 h measured at 0.21 s/crop), `b2_swin_dann_s42` (~2.3 h), `old_ckpt_ffpp_v2_eval` (~15 min).
+- GPU job: `landmarks_ffpp_real` (started 12:33), then `b1_swin_s42_r2` (B1 rerun), landmarks for ffpp_test, SBI sets, B2, C1, C2, G1, G2, G2-fft, G3, A3, robustness, G3 seed 1, t-SNE, SBI pool, teacher cache, S0, S2, S3, S3 seed 1. See `queue.yaml`.
+- B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
 ## Needs a human
 
@@ -54,4 +54,5 @@ See `splits/counts.md` for the full table.
 
 ## Decision rules applied
 
-- (none yet)
+- 2026-11-17 12:31 **B1 crashed at epoch 3** (exit 1, run folder renamed `runs/_crashed_b1_swin_s42_20261117-1150`): I edited `data/dataset.py` while it trained, and Windows DataLoader workers re-import code from disk, so the epoch-3 validation workers loaded the new class. Fix: every queue job now runs through `scripts/run_snapshot.py`, which freezes a copy of the code in `runs/_code/` per job. B1 re-queued as `b1_swin_s42_r2`. Epoch 1-2 val video AUC before the crash: 0.992, 0.994.
+- 2026-11-17 12:33 GRACE smoke test (G2: CLIP + LoRA + DCT + gated fusion + concept head, 30 steps) passed end to end.
