@@ -125,7 +125,10 @@ def main() -> None:
     if leak_rows:
         out += ["## 6. Leakage: old reported numbers vs the same checkpoint on leak-free splits", "", md_table(
             ["Old run", "Old reported val acc (leaky)", "Leak-free FF++ val acc", "FF++ test video AUC",
-             "DFD video AUC", "Celeb-DF video AUC"], leak_rows), ""]
+             "DFD video AUC", "Celeb-DF video AUC"], leak_rows), "",
+            "The old run's own split was a random video split over all of `ff++/faces` (including DFD), so it trained on "
+            "most of our FF++ val/test and DFD videos: those columns are contaminated. Celeb-DF was never in its data, "
+            "so only the Celeb-DF column is a fair cross-dataset comparison.", ""]
 
     RES.mkdir(exist_ok=True)
     (RES / "tables.md").write_text("\n".join(out), encoding="utf-8")
