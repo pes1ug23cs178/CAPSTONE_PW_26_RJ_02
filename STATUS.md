@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `c2q_clip_sbi_quarter_s42` (started 19:43, ~1.6 h). Then `pick_sbi_share`, B2-fake r2, G1, G2 DCT, G2-fft, G3, A3, robustness, students, explanations, app check, tables; then fillers (see queue.yaml).
+- GPU job: `b2f_swin_dann_fake_s42_r2` (started 21:22, ~50 min). Then G1 (SBI 1/4), G2 DCT, G2-fft, G3, A3, robustness, students, explanations, app check, tables; then fillers (see queue.yaml).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
 - Extra work queued after the main pipeline (user asked to use spare GPU time): runbook fillers G3 seed 2, S3 seed 2, **D2** (G3 + unsupervised adaptation to 5,978 unlabelled non-test Celeb-DF videos; dataset-level DANN), B1 seed 1; then **X1** (G3 trained on FF++ + DFD, tested on FF++ and Celeb-DF), then a results refresh (eval, tables, summary, release).
@@ -75,11 +75,13 @@ See `splits/counts.md` for the full table.
 | C1 CLIP + LoRA `c1_clip_lora_s42_20261117-1530` | 0.9996 | 0.9425 | 0.9362 | 1.0000 (3) | 1.68 |
 | C2 CLIP + LoRA + SBI 1/3 `c2_clip_sbi_s42_20261117-1711` | 0.9990 | 0.9573 | 0.9057 | 1.0000 (3) | 1.55 |
 | B2 Swin-B + DANN (spec: domain CE on all) `b2_swin_dann_s42_20261117-1850` | 0.9947 | 0.8703 | 0.8702 | 0.9994 (9) | 0.88 |
+| C2q CLIP + LoRA + SBI 1/4 `c2q_clip_sbi_quarter_s42_20261117-1943` | 0.9996 | 0.9613 | 0.9111 | 1.0000 (3) | 1.6 |
 | ~~B2 (collapsed run, superseded by r2)~~ | 0.9987 | 0.9140 | 0.8696 | 0.9988 (2) | 0.92 |
 
 - B1 checks: in-domain 0.9948 (< 0.995 alarm), cross-dataset max 0.910 (< 0.95 alarm). Celeb-DF fakes vs Celeb-real only: 0.911; vs YouTube-real only: 0.881, so no single real group drives the number. Celeb-DF fakes get low probabilities (mean 0.26), so accuracy at the FF++ threshold is 0.71 despite AUC 0.90: a calibration shift across datasets.
 - C1 vs B1: cross-dataset video AUC DFD +0.032, Celeb-DF +0.037; in-domain 0.9996 (> 0.995 alarm; same splits and checks as the B2 alarm, which found no leakage; frozen CLIP + LoRA is expected to be near-perfect in-domain). Celeb-DF threshold accuracy 0.65 (same calibration shift as B1).
 - C2 vs C1: DFD +0.015, Celeb-DF -0.031 (mixed; mean cross-dataset 0.932 vs 0.939). Runbook rule (C2 not better than C1 cross-dataset): `cache/sbi_check.png` still needs a human look; SBI share lowered to 1/4 in `c2q_clip_sbi_quarter` (queued next). Both val runs saturate (video 1.000, frame 0.995), so `scripts/pick_sbi_share.py` picks by best val (video, frame) AUC, ties keep 1/3, and writes the winner into G1/G2 configs before G1 starts (`results/sbi_share_decision.json`). Test numbers are not used for the choice.
+- **SBI share decision: 1/4** (C2q). Picked on FF++ val only: (1.000, frame 0.99483) vs C2 (1.000, 0.99462), a negligible margin, so the choice is effectively a tie-break. Test agrees: C2q is above C2 on DFD (0.961) and Celeb-DF (0.911), but still below C1 on Celeb-DF (0.936). G1/G2 configs now use sbi weight 2 (`results/sbi_share_decision.json`). SBI is required from G1 on anyway (it supplies the concept labels).
 - B2 r2 (fixed domain head): no collapse (val 0.987-0.999 over 10 epochs), but spec DANN with "real" as a domain **hurts** cross-dataset vs B1: DFD -0.040, Celeb-DF -0.029, consistent with the reversed gradient removing real-vs-fake signal (decision 14:25). B2-fake (`domain_on: fake`, the G3 setting) runs after C2q; if it also hurts, the runbook's DANN rule (retry with weight 0.03) applies at G3.
 - **B2 collapsed** after epoch 3: val video AUC 0.999 (ep 2) -> 0.06 (ep 4, inverted) -> 0.500 (ep 8-9, constant output). Its best checkpoint is epoch 2 (GRL alpha 0.76 by then), so its test numbers are essentially an early-stopped B1 and do not show a working DANN. See decision 14:25.
 - **Leakage alarm (rule: in-domain test AUC > 0.995) for B2's FF++ test 0.9987: checked, no leakage found.** Split test passes (6/6); 0 frames paths read; no DFD actor in FF++ training; only FF++ in training. Per-method: real vs Deepfakes 0.999 (114 videos), Face2Face 0.997 (20), FaceSwap 0.995 (6). The FF++ test is 81% Deepfakes (the easiest method) and lacks NeuralTextures, so near-perfect in-domain AUC is expected. **Please confirm (human check requested by the runbook).**
@@ -95,3 +97,4 @@ See `splits/counts.md` for the full table.
 - 2026-11-17 12:33 GRACE smoke test (G2: CLIP + LoRA + DCT + gated fusion + concept head, 30 steps) passed end to end.
 - 2026-11-17 19:00 C2 done (mixed vs C1); C2q (SBI 1/4) + `pick_sbi_share` inserted before G1 per the runbook decision rule.
 - 2026-11-17 19:45 B2 r2 done: DANN fix verified (no collapse); spec DANN lowers cross-dataset AUC vs B1.
+- 2026-11-17 21:23 C2q done; SBI share 1/4 chosen on val and written into G1/G2 configs.

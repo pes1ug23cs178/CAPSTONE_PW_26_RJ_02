@@ -1,0 +1,23 @@
+{
+  "c2": {
+    "run": "c2_clip_sbi_s42_20261117-1711",
+    "val": [
+      1.0,
+      0.9946210469285104
+    ]
+  },
+  "c2q": {
+    "run": "c2q_clip_sbi_quarter_s42_20261117-1943",
+    "val": [
+      1.0,
+      0.9948340847067636
+    ]
+  },
+  "chosen_sbi_weight": 2,
+  "share": "1/4",
+  "updated": [
+    "g1_concepts.yaml",
+    "g2_dct.yaml",
+    "g2_fft.yaml"
+  ]
+}

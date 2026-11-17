@@ -32,7 +32,7 @@ data:
   - FaceSwap
   cell_weights:
     real: 3
-    sbi: 3
+    sbi: 2
     Deepfakes: 1
     Face2Face: 1
     FaceSwap: 1
