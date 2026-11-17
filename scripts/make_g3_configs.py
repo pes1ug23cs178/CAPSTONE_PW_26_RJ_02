@@ -36,8 +36,11 @@ def main() -> None:
     base = yaml.safe_load((REPO_ROOT / "configs" / f"{base_name}.yaml").read_text())
 
     g3 = copy.deepcopy(base)
-    g3.update(name="g3_full", parent=base_name, notes=f"{base_name} + DANN (0.1) + MMD between fake domains (0.1); {reason}")
-    g3["model"]["domain"] = {"enabled": True, "num_domains": 5, "dann_weight": 0.1, "mmd_weight": 0.1, "mmd_on": "fake"}
+    g3.update(name="g3_full", parent=base_name, notes=f"{base_name} + DANN (0.1, fake domains only) + MMD between fake domains (0.1); {reason}")
+    # domain_on=fake: domain CE on fake samples only (runbook says all samples; B2 showed that treating "real" as a
+    # domain makes the reversed gradient erase the real/fake signal). See STATUS.md, decision 2026-11-17 14:25.
+    g3["model"]["domain"] = {"enabled": True, "num_domains": 5, "dann_weight": 0.1, "mmd_weight": 0.1, "mmd_on": "fake",
+                             "domain_on": "fake"}
     (REPO_ROOT / "configs" / "g3_full.yaml").write_text(yaml.safe_dump(g3, sort_keys=False, width=120))
 
     a3 = copy.deepcopy(g3)

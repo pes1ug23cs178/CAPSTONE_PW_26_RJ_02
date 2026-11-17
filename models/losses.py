@@ -53,8 +53,11 @@ def compute_loss(out: Dict[str, torch.Tensor], batch: Dict[str, torch.Tensor], c
     dom = cfg["model"].get("domain") or {}
     if dom.get("enabled") and "domain_logits" in out:
         d = batch["domain_id"]
-        valid = d >= 0
-        if valid.any():
+        # domain_on: all  -> every sample (runbook B2 spec; "real" is a domain, so the reversed gradient fights
+        #                    the real/fake task: observed in B2, train BCE rose 0.09 -> 0.50 as alpha ramped up)
+        #            fake -> only fake samples (align manipulation methods with each other, never real vs fake)
+        valid = d >= (1 if dom.get("domain_on", "all") == "fake" else 0)
+        if valid.sum() > 1:
             terms["domain_ce"] = F.cross_entropy(out["domain_logits"][valid].float(), d[valid])
             weights["domain_ce"] = float(dom.get("dann_weight", 0.1))
             only = FAKE_DOMAINS if dom.get("mmd_on", "all") == "fake" else None
@@ -85,6 +88,6 @@ def compute_loss(out: Dict[str, torch.Tensor], batch: Dict[str, torch.Tensor], c
     logs = {k: float(v.detach()) for k, v in terms.items()}
     if "domain_logits" in out and "domain_ce" in terms:
         d = batch["domain_id"]
-        valid = d >= 0
+        valid = d >= (1 if dom.get("domain_on", "all") == "fake" else 0)
         logs["domain_acc"] = float((out["domain_logits"][valid].argmax(1) == d[valid]).float().mean())
     return total, logs
