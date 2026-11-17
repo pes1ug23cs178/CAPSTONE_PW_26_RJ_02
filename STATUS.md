@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `c1_clip_lora_s42` (started 15:30; 105 img/s, ~8.5 min/epoch, expected end ~17:20). Estimated next: C2 ~19:15, B2 r2 ~20:10, B2-fake r2 ~21:05, G1 ~23:00, G2 DCT ~01:00, G2-fft ~03:00, G3 ~05:00, A3 ~07:00 (18 Nov), then robustness sweep, G3 seed 1, SBI pool, teacher cache, students.
+- GPU job: `c2_clip_sbi_s42` (started 17:11, expected end ~19:00). Then B2 r2, B2-fake r2, G1, G2 DCT, G2-fft, G3, A3, robustness, students, explanations, app check, tables; then fillers (see queue.yaml).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
 - Extra work queued after the main pipeline (user asked to use spare GPU time): runbook fillers G3 seed 2, S3 seed 2, **D2** (G3 + unsupervised adaptation to 5,978 unlabelled non-test Celeb-DF videos; dataset-level DANN), B1 seed 1; then **X1** (G3 trained on FF++ + DFD, tested on FF++ and Celeb-DF), then a results refresh (eval, tables, summary, release).
@@ -72,9 +72,11 @@ See `splits/counts.md` for the full table.
 | Run | FF++ test | DFD | Celeb-DF (interim) | Val video AUC (best epoch) | GPU h |
 | --- | --- | --- | --- | --- | --- |
 | B1 Swin-B `b1_swin_s42_20261117-1307` | 0.9948 | 0.9104 | 0.8992 | 0.9942 (8) | 0.78 |
+| C1 CLIP + LoRA `c1_clip_lora_s42_20261117-1530` | 0.9996 | 0.9425 | 0.9362 | 1.0000 (3) | 1.68 |
 | ~~B2 (collapsed run, superseded by r2)~~ | 0.9987 | 0.9140 | 0.8696 | 0.9988 (2) | 0.92 |
 
 - B1 checks: in-domain 0.9948 (< 0.995 alarm), cross-dataset max 0.910 (< 0.95 alarm). Celeb-DF fakes vs Celeb-real only: 0.911; vs YouTube-real only: 0.881, so no single real group drives the number. Celeb-DF fakes get low probabilities (mean 0.26), so accuracy at the FF++ threshold is 0.71 despite AUC 0.90: a calibration shift across datasets.
+- C1 vs B1: cross-dataset video AUC DFD +0.032, Celeb-DF +0.037; in-domain 0.9996 (> 0.995 alarm; same splits and checks as the B2 alarm, which found no leakage; frozen CLIP + LoRA is expected to be near-perfect in-domain). Celeb-DF threshold accuracy 0.65 (same calibration shift as B1).
 - **B2 collapsed** after epoch 3: val video AUC 0.999 (ep 2) -> 0.06 (ep 4, inverted) -> 0.500 (ep 8-9, constant output). Its best checkpoint is epoch 2 (GRL alpha 0.76 by then), so its test numbers are essentially an early-stopped B1 and do not show a working DANN. See decision 14:25.
 - **Leakage alarm (rule: in-domain test AUC > 0.995) for B2's FF++ test 0.9987: checked, no leakage found.** Split test passes (6/6); 0 frames paths read; no DFD actor in FF++ training; only FF++ in training. Per-method: real vs Deepfakes 0.999 (114 videos), Face2Face 0.997 (20), FaceSwap 0.995 (6). The FF++ test is 81% Deepfakes (the easiest method) and lacks NeuralTextures, so near-perfect in-domain AUC is expected. **Please confirm (human check requested by the runbook).**
 - **Old checkpoint `outputs_ffpp_v2_20260423_172121` on the new splits** (`runs/_old_ffpp_v2/`): FF++ val 1.000, FF++ test 1.000, DFD 0.999, Celeb-DF 0.956 video AUC. Its own split was a random video split of ALL of `ff++/faces` (incl. DFD), so it trained on most of our FF++ val/test and DFD videos: those three numbers are contaminated and only show it memorised them. Celeb-DF was never in its data, so 0.956 is a genuine cross-dataset number. **Leakage alarm (Swin cross-dataset > 0.95) checked:** its data_root was `ff++/faces` only; no Celeb-DF. Interpretation: it trained on ~2x more videos than B1 including DFD's 1,274 diverse actor videos; this suggests adding DFD as a training source would raise Celeb-DF AUC (B1: 0.899). Not in this week's plan; noted for the report and next steps.
