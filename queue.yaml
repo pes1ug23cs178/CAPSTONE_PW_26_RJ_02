@@ -68,3 +68,12 @@ jobs:
   - name: s3_kd_full_s1
     cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3_kd_full.yaml --seed 1
     after: s3_kd_full_s42
+  - name: export_onnx
+    cmd: python scripts/run_snapshot.py -- python scripts/export_onnx.py --out release/grace_student.onnx
+    after: s3_kd_full_s42
+  - name: agreement
+    cmd: python scripts/run_snapshot.py -- python scripts/agreement.py
+    after: s3_kd_full_s42
+  - name: benchmark
+    cmd: python scripts/run_snapshot.py -- python scripts/benchmark.py --models b1_swin g3_full s0_student s3_kd_full --onnx release/grace_student.onnx
+    after: export_onnx

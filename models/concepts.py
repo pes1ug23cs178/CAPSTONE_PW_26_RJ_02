@@ -10,7 +10,7 @@ import torch.nn as nn
 def topk_mean(maps: torch.Tensor, frac: float = 0.10) -> torch.Tensor:
     """Mean of the top `frac` cells of each map: [B, K, H, W] -> [B, K]."""
     flat = maps.flatten(2)
-    k = max(1, int(round(flat.shape[-1] * frac)))
+    k = max(1, int(round(int(flat.shape[-1]) * frac)))  # map size is static (16x16 or 7x7); int() keeps ONNX export happy
     return flat.topk(k, dim=-1).values.mean(-1)
 
 

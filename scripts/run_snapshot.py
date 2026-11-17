@@ -34,7 +34,8 @@ def main() -> None:
             shutil.copytree(REPO / d, snap / d, ignore=IGNORE)
     for f in REPO.glob("*.py"):
         shutil.copy2(f, snap / f.name)
-    env = dict(os.environ, GRACE_REPO_ROOT=str(REPO), PYTHONUNBUFFERED="1")
+    env = dict(os.environ, GRACE_REPO_ROOT=str(REPO), PYTHONUNBUFFERED="1", PYTHONIOENCODING="utf-8",
+               HF_HUB_DISABLE_SYMLINKS_WARNING="1")
     print(f"[run_snapshot] code frozen in {snap}", flush=True)
     rc = subprocess.call(" ".join(argv), shell=True, cwd=snap, env=env)
     sys.exit(rc)
