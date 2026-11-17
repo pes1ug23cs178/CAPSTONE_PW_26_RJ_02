@@ -17,9 +17,9 @@
 
 - Windows 11 Pro (10.0.26200), Python 3.12.3 (system install), 32 CPU threads
 - GPU: NVIDIA RTX 4500 Ada, 24 GB, driver 596.71
-- PyTorch 2.11.0+cu128, torchvision 0.26.0+cu128, CUDA 12.8, timm 1.0.26
-- Added: open_clip 4.2.2, peft 0.21.3, gradio 6.32.0, onnxruntime 1.32.0, faiss 1.16.0, face-alignment, pandas, pytest
-- ffmpeg: NOT installed (needed on Day 4 for H.264 robustness)
+- PyTorch 2.11.0+cu128, torchvision 0.26.0+cu128, CUDA 12.8. **timm 1.0.31** (installing open_clip upgraded it from 1.0.26; every sprint run uses 1.0.31; kept to avoid breaking open_clip)
+- Added (pinned in `requirements.txt`): open_clip 4.2.2, peft 0.21.3, gradio 6.32.0, onnxruntime 1.32.0, onnxscript 0.7.2, faiss 1.16.0, face-alignment 1.5.0, imageio-ffmpeg 0.8.1, pandas, pytest
+- ffmpeg: no system install; the bundled `imageio-ffmpeg` binary (ffmpeg 9.0.2, libx264) is used for H.264
 - Disk: on 17 Nov, C: had 3 GB free. Freed ~244 GB: removed `frames/` images (never used by the sprint; JSON metadata kept), duplicate git-LFS copies of old checkpoints, old intermediate checkpoints (each old run's `best_swin_deepfake.pth` kept), preprocessing `.pkl` resume files and the Python installer. C: now has ~234 GB free. Nothing written to D:.
 
 ## Data limitations found
@@ -51,6 +51,17 @@ See `splits/counts.md` for the full table.
 - T1.7 done, 2026-11-17 11:50, `queue_runner.py`; ordered dependency, failure -> dependent blocked, restart skips done jobs
 - T1.8 done, 2026-11-17 12:10, B1/B2 configs, queue running B1 (epoch 1 val video AUC 0.992); old-checkpoint evaluation queued
 - T2.1 done (code), 2026-11-17 12:20, landmark extraction: 64/64 test crops OK, check image shows points on eyes, nose, mouth and jaw; full run queued. Note: face-alignment's torch.compile needs Triton (missing on Windows) and silently failed every call; fixed with `TORCHDYNAMO_DISABLE=1`
+- T2.2 done (code), 2026-11-17 12:15, CLIP ViT-L/14 + LoRA: 1.573 M LoRA params; cls L2-normalized; patches 1024x16x16; batch 32 peak 7.5 GB (no grad checkpointing needed); trainable-only checkpoints 12.6 MB, reload exact
+- T2.4 done, 2026-11-17 12:25, SBI engine: 204 unit tests pass; `cache/sbi_check.png` drawn (**a human should look at it**); loader with SBI 784 img/s
+- T2.3/T2.5 queued (C1, C2)
+- T3.1-T3.4 code done, 2026-11-17 12:30: concept head (top-10% mean), decision layer (w=1, r zero-init), DCT (constant image -> DC only, orthonormal) and FFT branches in float32, gated fusion; 7 unit tests pass; G1/G2/G2-fft configs; smoke run of G2 passed on the GPU
+- T4.1 code done: domain head on z (D=5, MMD between fake domains); `scripts/make_g3_configs.py` picks G3's branch by FF++ **validation** AUC and writes G3 + A3 configs
+- T4.2 done: `explain/video_cues.py` (frame timeline, concept flicker, CLIP identity drift) wired into evaluate; constant sequence -> 0
+- T4.3 code done: JPEG / downscale / H.264 (libx264 veryfast, cached per video) degradations, `scripts/eval_all.py` with robustness figures
+- T4.4 code done: `scripts/plot_tsne.py`
+- T5.1-T5.4 code done: SBI pool (40k), teacher cache (+ 1e-3 check), EfficientNet-B0 student (4.71 M params, 0.39 GFLOPs), distillation losses (S0/S2/S3 tested), ONNX export (opset 18: the legacy exporter mis-exported EfficientNet by ~2 logits; the torch.export exporter matches to 2e-6), benchmark, agreement
+- T6.1-T6.4 code done: concept maps, contributions, intervention (all 10 off leaves b + r(z): test passes), Grad-CAM (Swin), Grad-CAM++ (student), attention rollout (CLIP), FAISS retrieval, calibration, explanation figure + metrics, Gradio app. App face crops: SFD detector + eye-level rotation, margin 1.02x the box (measured on 40 training crops; the runbook's 1.3x fallback is much looser than our training crops)
+- T7.2/T7.4 prep: `make_tables.py`, `make_release.py`, README, `docs/interfaces.md`, pinned `requirements.txt`; all queued after the training runs
 
 ## Decision rules applied
 
