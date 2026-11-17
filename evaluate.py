@@ -158,6 +158,17 @@ def concept_auc(model, sbi_csv: Path, device: torch.device, num_workers: int = 6
     for k in range(1, 11):
         y = (pred[f"c{k}_true"] > 0).astype(int).to_numpy()
         out[f"c{k}"] = safe_auc(y, pred[f"c{k}"].to_numpy())
+    # c1 ("blend present") is > 0 on every SBI image, so within the SBI set it has no negatives (AUC undefined).
+    # Score it against the untouched real source crops the SBI images were made from (c1 = 0 there).
+    if "source_frame" in labels.columns and np.isnan(out["c1"]):
+        src = labels[["source_frame", "source_id"]].drop_duplicates("source_frame")
+        neg = pd.DataFrame({"video_id": "src_" + src["source_id"].astype(str), "frame_path": src["source_frame"],
+                            "label": 0, "dataset": "ffpp", "method": "real", "source_id": src["source_id"].astype(str)})
+        neg_csv = Path(sbi_csv).with_name(Path(sbi_csv).stem + "_c1_negatives.csv")
+        neg.to_csv(neg_csv, index=False)
+        neg_pred = predict(model, str(neg_csv), device, num_workers=num_workers)
+        y = np.r_[np.ones(len(pred), int), np.zeros(len(neg_pred), int)]
+        out["c1"] = safe_auc(y, np.r_[pred["c1"].to_numpy(), neg_pred["c1"].to_numpy()])
     return out
 
 

@@ -9,6 +9,7 @@ Writes the decision to results/decisions.md.
 from __future__ import annotations
 
 import copy
+import json
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -39,6 +40,10 @@ def main() -> None:
     g3.update(name="g3_full", parent=base_name, notes=f"{base_name} + DANN (0.1, fake domains only) + MMD between fake domains (0.1); {reason}")
     # domain_on=fake: domain CE on fake samples only (runbook says all samples; B2 showed that treating "real" as a
     # domain makes the reversed gradient erase the real/fake signal). See STATUS.md, decision 2026-11-17 14:25.
+    # Residual penalty chosen after the G1 retry (scripts/pick_residual.py, val only)
+    rd = REPO_ROOT / "results" / "residual_decision.json"
+    if rd.exists() and base.get("loss"):
+        g3["loss"]["residual"] = json.loads(rd.read_text())["residual"]
     g3["model"]["domain"] = {"enabled": True, "num_domains": 5, "dann_weight": 0.1, "mmd_weight": 0.1, "mmd_on": "fake",
                              "domain_on": "fake"}
     (REPO_ROOT / "configs" / "g3_full.yaml").write_text(yaml.safe_dump(g3, sort_keys=False, width=120))
