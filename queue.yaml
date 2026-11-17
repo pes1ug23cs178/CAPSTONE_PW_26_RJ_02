@@ -54,7 +54,7 @@ jobs:
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/g2_fft.yaml --seed 42
     after: pick_residual
   - name: g1_concept_auc_rescore
-    cmd: python scripts/rescore_concepts.py g1_concepts_s42
+    cmd: python scripts/rescore_concepts.py g1_concepts_s42 g2_dct_s42
   - name: g3_full_s42
     cmd: python scripts/run_snapshot.py -- "python scripts/make_g3_configs.py && python train.py --config configs/g3_full.yaml --seed 42"
     after: g2_fft_s42
