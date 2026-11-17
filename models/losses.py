@@ -61,7 +61,27 @@ def compute_loss(out: Dict[str, torch.Tensor], batch: Dict[str, torch.Tensor], c
             terms["mmd"] = pairwise_mmd(out["z"][valid].float(), d[valid], only=only)
             weights["mmd"] = float(dom.get("mmd_weight", 0.1))
 
-    total = sum(weights[k] * v for k, v in terms.items())
+    dist = cfg.get("distill") or {}
+    if dist.get("enabled") and "teacher_logit" in batch:
+        temp = float(dist.get("T", 4.0))
+        if dist.get("kl", 0) > 0:
+            p_t = torch.sigmoid(batch["teacher_logit"] / temp).clamp(1e-6, 1 - 1e-6)
+            p_s = torch.sigmoid(out["logit"].float() / temp).clamp(1e-6, 1 - 1e-6)
+            kl = p_t * (p_t.log() - p_s.log()) + (1 - p_t) * ((1 - p_t).log() - (1 - p_s).log())
+            terms["kd_kl"] = kl.mean() * temp ** 2
+            weights["kd_kl"] = float(dist["kl"])
+        if dist.get("feat", 0) > 0:
+            terms["kd_feat"] = F.mse_loss(out["z"].float(), batch["teacher_z"])
+            weights["kd_feat"] = float(dist["feat"])
+        if dist.get("concept", 0) > 0:
+            terms["kd_concept"] = F.binary_cross_entropy_with_logits(out["concepts"].float(), torch.sigmoid(batch["teacher_concepts"]))
+            weights["kd_concept"] = float(dist["concept"])
+        if dist.get("map", 0) > 0:
+            t_maps = F.adaptive_avg_pool2d(torch.sigmoid(batch["teacher_maps"]), out["maps"].shape[-2:])
+            terms["kd_map"] = F.mse_loss(torch.sigmoid(out["maps"].float()), t_maps)
+            weights["kd_map"] = float(dist["map"])
+
+    total = sum(weights[k] * v for k, v in terms.items() if weights[k] != 0)
     logs = {k: float(v.detach()) for k, v in terms.items()}
     if "domain_logits" in out and "domain_ce" in terms:
         d = batch["domain_id"]

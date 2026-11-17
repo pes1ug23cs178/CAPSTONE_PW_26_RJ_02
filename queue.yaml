@@ -48,3 +48,21 @@ jobs:
   - name: tsne_figure
     cmd: python scripts/plot_tsne.py --models b1_swin g2_dct g3_full
     after: robustness_eval
+  - name: sbi_pool
+    cmd: python scripts/make_sbi_pool.py
+    after: landmarks_ffpp_real
+  - name: teacher_cache
+    cmd: python scripts/cache_teacher.py --teacher auto
+    after: g3_full_s42
+  - name: s0_student_s42
+    cmd: python distill.py --config configs/s0_student.yaml --seed 42
+    after: sbi_pool
+  - name: s2_kd_logits_s42
+    cmd: python distill.py --config configs/s2_kd_logits.yaml --seed 42
+    after: teacher_cache
+  - name: s3_kd_full_s42
+    cmd: python distill.py --config configs/s3_kd_full.yaml --seed 42
+    after: teacher_cache
+  - name: s3_kd_full_s1
+    cmd: python distill.py --config configs/s3_kd_full.yaml --seed 1
+    after: s3_kd_full_s42

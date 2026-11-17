@@ -51,8 +51,12 @@ def build_sbi_fn(cfg: Dict):
 
 def make_train_loader(cfg: Dict, seed: int, num_workers: int) -> (DataLoader, CellBalancedBatchSampler):
     data = cfg["data"]
+    degrade_fn = None
+    if data.get("student_degrade"):
+        from data.degrade import StudentDegrade
+        degrade_fn = StudentDegrade()
     ds = FaceFrameDataset(REPO_ROOT / data["train"], train=True, augment_cfg=data.get("augment"),
-                          sbi_fn=build_sbi_fn(cfg))
+                          sbi_fn=build_sbi_fn(cfg), degrade_fn=degrade_fn)
     sampler = CellBalancedBatchSampler(ds.cell_indices(data["cells"]), cfg["optim"]["batch_size"],
                                        cfg["optim"]["steps_per_epoch"], data.get("cell_weights"), seed)
     loader = DataLoader(ds, batch_sampler=sampler, num_workers=num_workers, pin_memory=True,
@@ -77,7 +81,17 @@ def make_optimizer(model, cfg: Dict, total_steps: int, warmup_steps: int):
     return opt, torch.optim.lr_scheduler.LambdaLR(opt, lr_lambda)
 
 
-def train_step(model, batch, cfg, opt, sched, ema, alpha: float, use_bf16: bool, grad_clip: float):
+def load_teacher(cfg: Dict):
+    dist = cfg.get("distill") or {}
+    if not dist.get("enabled"):
+        return None
+    from data.teacher_cache import TeacherCache
+    return TeacherCache(REPO_ROOT / dist.get("cache_dir", "cache/teacher"))
+
+
+def train_step(model, batch, cfg, opt, sched, ema, alpha: float, use_bf16: bool, grad_clip: float, teacher=None):
+    if teacher is not None:
+        batch.update(teacher.lookup(batch["path"], batch["image"].device))
     with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=use_bf16):
         out = model(batch["image"], alpha=alpha)
     loss, logs = compute_loss(out, batch, cfg)
@@ -100,13 +114,14 @@ def train_step(model, batch, cfg, opt, sched, ema, alpha: float, use_bf16: bool,
 def dry_run(cfg: Dict, device: torch.device, log, num_workers: int, steps: int = 50) -> None:
     model = build_model(cfg["model"]).to(device)
     loader, _ = make_train_loader(cfg, cfg["seed"], num_workers)
+    teacher = load_teacher(cfg)
     opt, sched = make_optimizer(model, cfg, steps, 5)
     torch.cuda.reset_peak_memory_stats()
     model.train()
     first = last = None
     t0 = time.time()
     for i, batch in enumerate(loader):
-        logs = train_step(model, to_device(batch, device), cfg, opt, sched, None, 0.1, True, 1.0)
+        logs = train_step(model, to_device(batch, device), cfg, opt, sched, None, 0.1, True, 1.0, teacher)
         first = logs if first is None else first
         last = logs
         if i + 1 >= steps:
@@ -114,7 +129,7 @@ def dry_run(cfg: Dict, device: torch.device, log, num_workers: int, steps: int =
     peak = torch.cuda.max_memory_allocated() / 1e9
     log.info("DRY RUN ok: %d steps in %.0fs, loss %.4f -> %.4f, peak GPU memory %.1f GB",
              steps, time.time() - t0, first["loss"], last["loss"], peak)
-    del model, opt, sched, loader
+    del model, opt, sched, loader, teacher
     gc.collect()
     torch.cuda.empty_cache()
 
@@ -181,6 +196,7 @@ def main() -> None:
     n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
     log.info("Trainable parameters: %.2f M", n_train / 1e6)
     loader, sampler = make_train_loader(cfg, seed, args.num_workers)
+    teacher = load_teacher(cfg)
     o = cfg["optim"]
     epochs, steps = int(o["epochs"]), int(o["steps_per_epoch"])
     total = epochs * steps
@@ -199,7 +215,7 @@ def main() -> None:
         n = 0
         for batch in loader:
             alpha = compute_domain_alpha(global_step / max(total, 1))
-            logs = train_step(model, to_device(batch, device), cfg, opt, sched, ema, alpha, True, grad_clip)
+            logs = train_step(model, to_device(batch, device), cfg, opt, sched, ema, alpha, True, grad_clip, teacher)
             global_step += 1
             n += 1
             for k, v in logs.items():
@@ -211,7 +227,9 @@ def main() -> None:
                          torch.cuda.max_memory_allocated() / 1e9)
         train_time = time.time() - t0
 
-        pred = predict(ema.model, val_csv, device, num_workers=args.num_workers, limit=cfg["data"].get("val_limit"))
+        # students select on FF++ val with jpeg:50 inputs (data.val_degrade), teachers on clean val
+        pred = predict(ema.model, val_csv, device, num_workers=args.num_workers, limit=cfg["data"].get("val_limit"),
+                       degrade=cfg["data"].get("val_degrade"))
         vt = video_table(pred)
         val_m = compute_metrics(pred, None)
         rec = {"epoch": epoch, "train_time_s": round(train_time, 1), "val_video_auc": val_m["video_auc"],

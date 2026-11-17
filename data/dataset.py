@@ -95,6 +95,12 @@ class FaceFrameDataset(Dataset):
         self.labels = df["label"].astype(int).to_numpy()
         self.methods: List[str] = df["method"].tolist()
         self.video_ids: List[str] = df["video_id"].tolist()
+        # Stored recipe labels (frozen SBI pool / SBI evaluation sets): c1..c10 + boundary_path columns.
+        ccols = [f"c{k}" for k in range(1, NUM_CONCEPTS + 1)]
+        self.stored_concepts = None
+        if all(c in df.columns for c in ccols):
+            self.stored_concepts = df[ccols].apply(pd.to_numeric, errors="coerce").fillna(0.0).to_numpy(np.float32)
+        self.boundary_paths = df["boundary_path"].tolist() if "boundary_path" in df.columns else None
 
     def __len__(self) -> int:
         return len(self.df)
@@ -106,7 +112,8 @@ class FaceFrameDataset(Dataset):
             if cell == "real":
                 out[cell] = real_idx
             elif cell == "sbi":
-                out[cell] = [len(self) + i for i in real_idx]
+                stored = [i for i, m in enumerate(self.methods) if m == "sbi"]
+                out[cell] = stored if stored else [len(self) + i for i in real_idx]  # frozen pool, else on the fly
             else:
                 out[cell] = [i for i, m in enumerate(self.methods) if m == cell]
             if not out[cell]:
@@ -139,7 +146,13 @@ class FaceFrameDataset(Dataset):
             img = light_augment(img, self.augment_cfg)
         if self.degrade_fn is not None:
             img = np.ascontiguousarray(self.degrade_fn(img))
-        return self._base_item(index, img, self.methods[index], int(self.labels[index]))
+        item = self._base_item(index, img, self.methods[index], int(self.labels[index]))
+        if self.methods[index] == "sbi" and self.stored_concepts is not None:
+            item["concepts"] = torch.from_numpy(self.stored_concepts[index].copy())
+            bp = self.boundary_paths[index] if self.boundary_paths else ""
+            if bp:
+                item["boundary"] = torch.from_numpy(np.load(self.root / bp).astype(np.float32))
+        return item
 
     def _sbi_item(self, i: int) -> Dict:
         if self.sbi_fn is None:
