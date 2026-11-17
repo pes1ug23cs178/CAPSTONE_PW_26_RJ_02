@@ -77,3 +77,15 @@ jobs:
   - name: benchmark
     cmd: python scripts/run_snapshot.py -- python scripts/benchmark.py --models b1_swin g3_full s0_student s3_kd_full --onnx release/grace_student.onnx
     after: export_onnx
+  - name: calibrate
+    cmd: python scripts/run_snapshot.py -- python scripts/calibrate.py --models b1_swin g3_full s3_kd_full
+    after: s3_kd_full_s42
+  - name: fig_explanations
+    cmd: python scripts/run_snapshot.py -- python scripts/fig_explanations.py
+    after: s3_kd_full_s42
+  - name: explain_eval
+    cmd: python scripts/run_snapshot.py -- python scripts/explain_eval.py
+    after: s3_kd_full_s42
+  - name: final_eval_all
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin b2_swin_dann c1_clip_lora c2_clip_sbi g1_concepts g2_dct g2_fft g3_full a3_linear_head s0_student s2_kd_logits s3_kd_full --seeds 42 1
+    after: s3_kd_full_s1

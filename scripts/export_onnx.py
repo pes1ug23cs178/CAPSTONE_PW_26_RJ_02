@@ -6,6 +6,7 @@ Input `image` N x 3 x 224 x 224 float32 in [0, 1]; outputs `logit`, `concepts`, 
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -59,6 +60,10 @@ def main() -> None:
         ref = [t.numpy() for t in model(x)]
     got = sess.run(None, {"image": x.numpy()})
     diffs = [float(np.abs(a - b).max()) for a, b in zip(ref, got)]
+    dec = model.model.decision
+    meta = {"w": dec.w.detach().float().tolist(), "b": float(dec.b), "run": ckpt.parent.name,
+            "inputs": "image N x 3 x 224 x 224 float32 in [0,1]", "outputs": ["logit", "concepts", "maps"]}
+    out.with_suffix(".json").write_text(json.dumps(meta, indent=2))
     print(f"exported {out} ({out.stat().st_size / 1e6:.1f} MB) from {ckpt}; max |torch - onnx| logit/concepts/maps = {diffs}")
     if max(diffs) > 1e-3:
         sys.exit("ONNX check FAILED (> 1e-3)")
