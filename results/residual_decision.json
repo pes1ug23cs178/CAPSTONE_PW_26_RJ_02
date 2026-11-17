@@ -1,0 +1,18 @@
+{
+  "g1": {
+    "run": "g1_concepts_s42_20261117-2214",
+    "epoch": 2,
+    "val_video_auc": 0.999853228962818,
+    "val_frame_auc": 0.9907218201519691,
+    "val_concept_share": 0.24784378221078113
+  },
+  "g1r": {
+    "run": "g1r_concepts_res1e2_s42_20261118-0135",
+    "epoch": 3,
+    "val_video_auc": 0.999853228962818,
+    "val_frame_auc": 0.9925809438447897,
+    "val_concept_share": 0.6394878471311717
+  },
+  "kept": "g1r",
+  "residual": 0.01
+}
