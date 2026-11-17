@@ -35,7 +35,7 @@ from models.losses import compute_loss  # noqa: E402
 from utils.common import append_experiment, default_num_workers, git_commit, make_run_dir, set_seed, setup_logging  # noqa: E402
 from utils.config import REPO_ROOT, add_config_args, load_config  # noqa: E402
 
-TENSOR_KEYS = ("image", "label", "concepts", "concept_mask", "boundary", "boundary_mask", "domain_id")
+TENSOR_KEYS = ("image", "label", "label_mask", "concepts", "concept_mask", "boundary", "boundary_mask", "domain_id")
 
 
 def to_device(batch: Dict, device: torch.device) -> Dict:
@@ -56,7 +56,7 @@ def make_train_loader(cfg: Dict, seed: int, num_workers: int) -> (DataLoader, Ce
         from data.degrade import StudentDegrade
         degrade_fn = StudentDegrade()
     ds = FaceFrameDataset(REPO_ROOT / data["train"], train=True, augment_cfg=data.get("augment"),
-                          sbi_fn=build_sbi_fn(cfg), degrade_fn=degrade_fn)
+                          sbi_fn=build_sbi_fn(cfg), degrade_fn=degrade_fn, domain_mode=data.get("domain_mode", "method"))
     sampler = CellBalancedBatchSampler(ds.cell_indices(data["cells"]), cfg["optim"]["batch_size"],
                                        cfg["optim"]["steps_per_epoch"], data.get("cell_weights"), seed)
     loader = DataLoader(ds, batch_sampler=sampler, num_workers=num_workers, pin_memory=True,

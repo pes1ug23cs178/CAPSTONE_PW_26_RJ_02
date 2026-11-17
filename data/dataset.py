@@ -20,7 +20,7 @@ from torch.utils.data import Dataset
 
 from utils.config import load_paths
 
-DOMAIN_IDS = {"real": 0, "Deepfakes": 1, "Face2Face": 2, "FaceSwap": 3, "sbi": 4}
+DOMAIN_IDS = {"real": 0, "Deepfakes": 1, "Face2Face": 2, "FaceSwap": 3, "sbi": 4, "DeepFakeDetection": 5}
 NUM_CONCEPTS = 10
 IMG_SIZE = 224
 
@@ -74,11 +74,13 @@ def compress_augment(img: np.ndarray, cfg: Dict) -> np.ndarray:
 class FaceFrameDataset(Dataset):
     def __init__(self, csv_path: str, train: bool, augment_cfg: Optional[Dict] = None,
                  sbi_fn: Optional[Callable] = None, limit: Optional[int] = None,
-                 degrade_fn: Optional[Callable] = None, path_map: Optional[Dict[str, str]] = None) -> None:
+                 degrade_fn: Optional[Callable] = None, path_map: Optional[Dict[str, str]] = None,
+                 domain_mode: str = "method") -> None:
         """degrade_fn: applied to every loaded crop after augmentation (evaluation degradations and the
         student's input degradation). path_map: frame_path -> substitute path (H.264 decoded cache)."""
         self.degrade_fn = degrade_fn
         self.path_map = path_map
+        self.domain_mode = domain_mode  # "method": real/Deepfakes/...; "dataset": 0 labelled source, 1 unlabelled target
         self.csv_path = str(csv_path)
         df = pd.read_csv(csv_path, dtype={"video_id": str, "source_id": str}, keep_default_na=False)
         bad = df["frame_path"].str.contains(r"(?:^|/)frames/", regex=True)
@@ -95,12 +97,15 @@ class FaceFrameDataset(Dataset):
         self.labels = df["label"].astype(int).to_numpy()
         self.methods: List[str] = df["method"].tolist()
         self.video_ids: List[str] = df["video_id"].tolist()
+        self.datasets: List[str] = df["dataset"].tolist() if "dataset" in df.columns else ["ffpp"] * len(df)
         # Stored recipe labels (frozen SBI pool / SBI evaluation sets): c1..c10 + boundary_path columns.
         ccols = [f"c{k}" for k in range(1, NUM_CONCEPTS + 1)]
         self.stored_concepts = None
         if all(c in df.columns for c in ccols):
             self.stored_concepts = df[ccols].apply(pd.to_numeric, errors="coerce").fillna(0.0).to_numpy(np.float32)
         self.boundary_paths = df["boundary_path"].tolist() if "boundary_path" in df.columns else None
+        # unlabeled == "1": target-domain rows for unsupervised adaptation (D2); their labels are never used
+        self.unlabeled = (df["unlabeled"].astype(str) == "1").to_numpy() if "unlabeled" in df.columns else np.zeros(len(df), bool)
 
     def __len__(self) -> int:
         return len(self.df)
@@ -110,10 +115,14 @@ class FaceFrameDataset(Dataset):
         real_idx = [i for i, m in enumerate(self.methods) if m == "real"]
         for cell in cells:
             if cell == "real":
-                out[cell] = real_idx
+                out[cell] = [i for i in real_idx if not self.unlabeled[i]]
+            elif cell == "target":
+                out[cell] = [i for i in range(len(self.methods)) if self.unlabeled[i]]
             elif cell == "sbi":
                 stored = [i for i, m in enumerate(self.methods) if m == "sbi"]
-                out[cell] = stored if stored else [len(self) + i for i in real_idx]  # frozen pool, else on the fly
+                # frozen pool if present, else on the fly from FF++ real crops (the only ones with cached landmarks)
+                ffpp_real = [i for i in real_idx if self.datasets[i] == "ffpp"]
+                out[cell] = stored if stored else [len(self) + i for i in ffpp_real]
             else:
                 out[cell] = [i for i, m in enumerate(self.methods) if m == cell]
             if not out[cell]:
@@ -122,14 +131,20 @@ class FaceFrameDataset(Dataset):
 
     def _base_item(self, i: int, image: np.ndarray, method: str, label: int) -> Dict:
         is_ffpp_fake = label == 1 and method != "sbi"
+        unl = bool(self.unlabeled[i]) and method != "sbi"
+        if self.domain_mode == "dataset":
+            dom = 1 if unl else 0
+        else:
+            dom = DOMAIN_IDS.get(method, -1)
         return {
             "image": torch.from_numpy(image).permute(2, 0, 1).float().div_(255.0),
             "label": torch.tensor(float(label)),
             "concepts": torch.zeros(NUM_CONCEPTS),
-            "concept_mask": torch.zeros(NUM_CONCEPTS) if is_ffpp_fake else torch.ones(NUM_CONCEPTS),
+            "label_mask": torch.tensor(0.0 if unl else 1.0),
+            "concept_mask": torch.zeros(NUM_CONCEPTS) if (is_ffpp_fake or unl) else torch.ones(NUM_CONCEPTS),
             "boundary": torch.zeros(16, 16),
-            "boundary_mask": torch.tensor(0.0 if is_ffpp_fake else 1.0),
-            "domain_id": torch.tensor(DOMAIN_IDS.get(method, -1), dtype=torch.long),
+            "boundary_mask": torch.tensor(0.0 if (is_ffpp_fake or unl) else 1.0),
+            "domain_id": torch.tensor(dom, dtype=torch.long),
             "video_id": self.video_ids[i],
             "method": method,
             "path": self.paths[i],

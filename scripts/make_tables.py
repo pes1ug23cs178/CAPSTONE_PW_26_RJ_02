@@ -24,7 +24,8 @@ LABEL = {"b1_swin": "B1 Swin-B", "b2_swin_dann": "B2 Swin-B + DANN (real as a do
          "b2f_swin_dann_fake": "B2-fake Swin-B + DANN (fake domains only)", "c1_clip_lora": "C1 CLIP + LoRA",
          "c2_clip_sbi": "C2 + SBI", "g1_concepts": "G1 + concepts", "g2_dct": "G2 + DCT fusion",
          "g2_fft": "G2-fft + FFT fusion", "g3_full": "G3 full teacher (+ DANN)", "a3_linear_head": "A3 G3 w/o concepts",
-         "s0_student": "S0 student, no teacher", "s2_kd_logits": "S2 student, logit KD", "s3_kd_full": "S3 student, full KD"}
+         "s0_student": "S0 student, no teacher", "s2_kd_logits": "S2 student, logit KD", "s3_kd_full": "S3 student, full KD",
+         "d2_unsup_adapt": "D2 G3 + unsupervised adaptation to Celeb-DF", "x1_ffpp_dfd": "X1 G3 trained on FF++ + DFD (DFD not a test set)"}
 
 
 def fmt(vals) -> str:

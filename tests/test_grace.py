@@ -72,3 +72,14 @@ def test_decision_starts_concept_only_and_intervention():
         assert torch.allclose(out["residual"], torch.zeros(2))
         off = m(x, off=torch.ones(10))
     assert torch.allclose(off["logit"], m.decision.b + off["residual"], atol=1e-5)
+
+
+def test_unlabelled_rows_give_no_class_loss():
+    """D2: rows with label_mask 0 must not affect the real/fake loss, whatever their label."""
+    out = {"logit": torch.tensor([2.0, -1.0, 0.5, 0.3])}
+    cfg = {"model": {}, "loss": {}}
+    b1 = {"label": torch.tensor([1., 0., 0., 0.]), "label_mask": torch.tensor([1., 1., 0., 0.])}
+    b2 = {"label": torch.tensor([1., 0., 1., 1.]), "label_mask": torch.tensor([1., 1., 0., 0.])}
+    l1, _ = compute_loss(out, b1, cfg)
+    l2, _ = compute_loss(out, b2, cfg)
+    assert torch.allclose(l1, l2)

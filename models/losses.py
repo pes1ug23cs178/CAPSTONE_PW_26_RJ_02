@@ -28,7 +28,13 @@ def masked_bce(logits: torch.Tensor, target: torch.Tensor, mask: torch.Tensor) -
 
 def compute_loss(out: Dict[str, torch.Tensor], batch: Dict[str, torch.Tensor], cfg: Dict) -> Tuple[torch.Tensor, Dict[str, float]]:
     label = batch["label"]
-    terms: Dict[str, torch.Tensor] = {"bce": F.binary_cross_entropy_with_logits(out["logit"].float(), label.float())}
+    if "label_mask" in batch and (batch["label_mask"] < 1).any():  # D2: unlabelled target rows give no class loss
+        lm = batch["label_mask"].float()
+        per = F.binary_cross_entropy_with_logits(out["logit"].float(), label.float(), reduction="none")
+        bce = (per * lm).sum() / lm.sum().clamp(min=1.0)
+    else:
+        bce = F.binary_cross_entropy_with_logits(out["logit"].float(), label.float())
+    terms: Dict[str, torch.Tensor] = {"bce": bce}
     weights: Dict[str, float] = {"bce": float(cfg.get("loss", {}).get("bce", 1.0))}
 
     lw = cfg.get("loss", {})

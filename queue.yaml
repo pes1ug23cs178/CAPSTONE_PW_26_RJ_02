@@ -109,3 +109,24 @@ jobs:
   - name: make_release
     cmd: python scripts/run_snapshot.py -- python scripts/make_release.py
     after: make_tables
+  # ---- optional fillers (runbook order), then the extra FF++ + DFD experiment, then refresh results ----
+  - name: g3_full_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/g3_full.yaml --seed 2
+    after: g3_full_s42
+  - name: s3_kd_full_s2
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3_kd_full.yaml --seed 2
+    after: s3_kd_full_s42
+  - name: d2_unsup_adapt_s42
+    cmd: python scripts/run_snapshot.py -- "python scripts/make_adapt_splits.py && python scripts/make_extra_configs.py && python train.py --config configs/d2_unsup_adapt.yaml --seed 42"
+    after: g3_full_s42
+  - name: b1_swin_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/b1_swin.yaml --seed 1
+  - name: x1_ffpp_dfd_s42
+    cmd: python scripts/run_snapshot.py -- "python scripts/make_adapt_splits.py && python scripts/make_extra_configs.py && python train.py --config configs/x1_ffpp_dfd.yaml --seed 42"
+    after: g3_full_s42
+  - name: final_eval_all_v2
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin b2_swin_dann b2f_swin_dann_fake c1_clip_lora c2_clip_sbi g1_concepts g2_dct g2_fft g3_full a3_linear_head s0_student s2_kd_logits s3_kd_full d2_unsup_adapt --seeds 42 1 2
+    after: x1_ffpp_dfd_s42
+  - name: make_tables_v2
+    cmd: python scripts/run_snapshot.py -- "python scripts/make_tables.py && python scripts/make_summary.py && python scripts/make_release.py"
+    after: final_eval_all_v2
