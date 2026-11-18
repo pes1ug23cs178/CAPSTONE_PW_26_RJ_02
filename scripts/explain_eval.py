@@ -84,7 +84,7 @@ def del_ins(model, img, m, device):
 def main() -> None:
     device = torch.device("cuda")
     root = load_paths()["data_root"]
-    names = {"g3": "g3_full", "b1": "b1_swin", "c1": "c1_clip_lora", "s3": "s3_kd_full", "s0": "s0_student"}
+    names = {"g3": "final", "b1": "b1_swin", "c1": "c1_clip_lora", "s3": "s3_kd_full", "s0": "s0_student"}
     runs = {k: resolve_runs([v], [42])[0] for k, v in names.items()}
     models = {k: load_model_from_ckpt(str(r / "best.pth"), device)[0] for k, r in runs.items() if k != "s0"}
     rows = []
@@ -148,7 +148,7 @@ def main() -> None:
     for key, model in (("G3", models["g3"]), ("S0", s0_model), ("S3", models["s3"])):
         for c, v in concept_auc(model, REPO_ROOT / "cache" / "sbi_test" / "sbi_test.csv", device).items():
             rows.append({"method": key, "metric": f"concept_auc_{c}", "value": v, "n": 2000})
-    for name in ("g1_concepts", "g2_dct", "g2_fft", "g3_full", "s3_kd_full"):
+    for name in ("g1_concepts", "g2_dct", "g2_fft", "g3_full", "f1_grace_dct", "f2_grace_pdann", "s3_kd_full"):
         found = resolve_runs([name], [42])
         if not found:
             continue

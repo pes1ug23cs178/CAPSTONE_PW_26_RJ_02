@@ -51,8 +51,13 @@ class GraceDetector(nn.Module):
             raise ValueError(f"Unknown head {self.head_kind!r}")
         dom = model_cfg.get("domain") or {}
         self.domain_enabled = bool(dom.get("enabled"))
+        # domain.input: "z" (runbook G3: the fused vector) or "patches" (mean-pooled CLIP patch tokens, the features the
+        # concept head reads). On z the DANN/MMD terms were satisfied by emptying z (G3 gate -> 0, A3 collapse), so they
+        # never touched the features the decision uses; on patches they act on the decision path itself.
+        self.domain_input = dom.get("input", "z")
         if self.domain_enabled:
-            self.domain_head = DomainHead(z_dim, int(dom["num_domains"]), hidden=256, dropout=0.2)
+            in_dim = self.backbone.dim if self.domain_input == "patches" else z_dim
+            self.domain_head = DomainHead(in_dim, int(dom["num_domains"]), hidden=256, dropout=0.2)
 
     def forward(self, x: torch.Tensor, alpha: float = 0.0, off: Optional[torch.Tensor] = None) -> Dict[str, torch.Tensor]:
         f = self.backbone(x)
@@ -70,7 +75,10 @@ class GraceDetector(nn.Module):
         else:
             out["logit"] = self.linear_head(z.float()).squeeze(-1)
         if self.domain_enabled:
-            out["domain_logits"] = self.domain_head(z, alpha)
+            # patch tokens already pass CLIP's final LayerNorm (frozen), so their scale cannot be shrunk by the adversary
+            dfeat = f["patches"].mean(dim=(2, 3)) if self.domain_input == "patches" else z
+            out["domain_feat"] = dfeat
+            out["domain_logits"] = self.domain_head(dfeat, alpha)
         return out
 
     def param_groups(self, lr: Dict[str, float]) -> List[Dict]:

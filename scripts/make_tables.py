@@ -24,6 +24,8 @@ LABEL = {"b1_swin": "B1 Swin-B", "b2_swin_dann": "B2 Swin-B + DANN (real as a do
          "b2f_swin_dann_fake": "B2-fake Swin-B + DANN (fake domains only)", "c1_clip_lora": "C1 CLIP + LoRA",
          "c2_clip_sbi": "C2 + SBI", "g1_concepts": "G1 + concepts", "g2_dct": "G2 + DCT fusion",
          "g2_fft": "G2-fft + FFT fusion", "g3_full": "G3 full teacher (+ DANN)", "a3_linear_head": "A3 G3 w/o concepts",
+         "f1_grace_dct": "F1 G2-DCT + residual 1e-2 + hard-val selection",
+         "f2_grace_pdann": "F2 F1 + DANN/MMD on patch features",
          "s0_student": "S0 student, no teacher", "s2_kd_logits": "S2 student, logit KD", "s3_kd_full": "S3 student, full KD",
          "d2_unsup_adapt": "D2 G3 + unsupervised adaptation to Celeb-DF", "x1_ffpp_dfd": "X1 G3 trained on FF++ + DFD (DFD not a test set)"}
 
@@ -71,21 +73,26 @@ def main() -> None:
         ["Model", "FF++ test", "DFD", "Celeb-DF", "Cross-dataset"],
         [[LABEL[m]] + [fmt(metric(m, s, "frame_auc")) for s in SPLITS] + [fmt(cross(m, "frame_auc"))] for m in models]), ""]
 
-    chain = [m for m in ["c1_clip_lora", "c2_clip_sbi", "g1_concepts", "g2_dct", "g2_fft", "g3_full", "a3_linear_head"] if m in models]
+    from utils.common import final_teacher_name
+    final = final_teacher_name()
+    chain = [m for m in ["c1_clip_lora", "c2_clip_sbi", "g1_concepts", "g2_dct", "g2_fft", "g3_full", "a3_linear_head",
+                         "f1_grace_dct", "f2_grace_pdann"] if m in models]
     rows, prev = [], None
     for m in chain:
         v = cross(m)
         cur = float(np.mean(v)) if v else None
         delta = "" if prev is None or cur is None else f"{cur - prev:+.3f}"
         rows.append([LABEL[m], fmt(metric(m, "ffpp_test")), fmt(v), delta])
-        if m not in ("g2_fft", "a3_linear_head"):
+        if m == "a3_linear_head":
+            prev = float(np.mean(cross("g2_dct"))) if cross("g2_dct") else prev  # F1 is compared with G2-DCT
+        elif m not in ("g2_fft",):
             prev = cur
     out += ["## 2. Ablation (each row changes one thing from the row above)", "",
             md_table(["Model", "FF++ test", "Cross-dataset", "Δ cross vs previous step"], rows),
-            "", "G2-fft is compared with G1; A3 is compared with G3.", ""]
+            "", f"G2-fft is compared with G1; A3 is compared with G3; F1 with G2-DCT; F2 with F1. Final teacher (picked on val): {LABEL.get(final, final)}.", ""]
 
     rob = pd.read_csv(RES / "robustness.csv") if (RES / "robustness.csv").exists() else pd.DataFrame()
-    rmodels = [m for m in ["b1_swin", "c1_clip_lora", "g3_full", "s0_student", "s2_kd_logits", "s3_kd_full"] if m in models]
+    rmodels = [m for m in dict.fromkeys(["b1_swin", "c1_clip_lora", "g3_full", final, "s0_student", "s2_kd_logits", "s3_kd_full"]) if m in models]
     out += ["## 3. Robustness (cross-dataset video AUC)", "", md_table(
         ["Model", "clean", "jpeg:30", "down:0.25", "h264:40"],
         [[LABEL[m]] + [fmt(cross(m, degrade=d)) for d in ("clean", "jpeg:30", "down:0.25", "h264:40")] for m in rmodels]),
@@ -94,7 +101,7 @@ def main() -> None:
     eff = pd.read_csv(RES / "efficiency.csv").set_index("model") if (RES / "efficiency.csv").exists() else pd.DataFrame()
     agr = pd.read_csv(RES / "agreement.csv") if (RES / "agreement.csv").exists() else pd.DataFrame()
     srows = []
-    for m in [x for x in ["b1_swin", "g3_full", "s0_student", "s2_kd_logits", "s3_kd_full"] if x in models]:
+    for m in [x for x in dict.fromkeys(["b1_swin", final, "s0_student", "s2_kd_logits", "s3_kd_full"]) if x in models]:
         e = eff.loc[m] if m in eff.index else {}
         a = agr[(agr["student"] == m) & (agr["degrade"] == "clean")] if len(agr) else pd.DataFrame()
         srows.append([LABEL[m], e.get("params_m", "–"), e.get("gflops", "–"), e.get("gpu_fps_bs64", "–"),

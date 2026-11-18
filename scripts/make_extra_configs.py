@@ -19,19 +19,22 @@ from utils.config import REPO_ROOT  # noqa: E402
 
 
 def main() -> None:
-    g3 = yaml.safe_load((REPO_ROOT / "configs" / "g3_full.yaml").read_text())
+    from utils.common import final_teacher_name
+    base_name = final_teacher_name()  # the final teacher picked on val (F1/F2), else G3
+    g3 = yaml.safe_load((REPO_ROOT / "configs" / f"{base_name}.yaml").read_text())
     d2 = copy.deepcopy(g3)
-    d2.update(name="d2_unsup_adapt", parent="g3_full",
+    d2.update(name="d2_unsup_adapt", parent=base_name,
               notes="G3 + unsupervised adaptation to unlabelled Celeb-DF (non-test videos); dataset-level DANN + MMD")
     d2["data"].update(train="cache/adapt/d2_train.csv", domain_mode="dataset",
                       cells=list(g3["data"]["cells"]) + ["target"],
                       cell_weights={**g3["data"].get("cell_weights", {}), "target": 3})
-    d2["model"]["domain"] = {"enabled": True, "num_domains": 2, "dann_weight": 0.1, "mmd_weight": 0.1,
+    # on patch features (domain.input), not z: on z the domain terms empty z instead of aligning (G3/A3 finding)
+    d2["model"]["domain"] = {"enabled": True, "input": "patches", "num_domains": 2, "dann_weight": 0.1, "mmd_weight": 0.1,
                              "mmd_on": "all", "domain_on": "all"}
     (REPO_ROOT / "configs" / "d2_unsup_adapt.yaml").write_text(yaml.safe_dump(d2, sort_keys=False, width=120))
 
     x1 = copy.deepcopy(g3)
-    x1.update(name="x1_ffpp_dfd", parent="g3_full", notes="G3 trained on FF++ + DFD; tested on FF++ and Celeb-DF only")
+    x1.update(name="x1_ffpp_dfd", parent=base_name, notes="G3 trained on FF++ + DFD; tested on FF++ and Celeb-DF only")
     x1["data"].update(train="cache/adapt/x1_train.csv", cells=list(g3["data"]["cells"]) + ["DeepFakeDetection"],
                       cell_weights={**g3["data"].get("cell_weights", {}), "DeepFakeDetection": 1},
                       tests=["splits/ffpp_test.csv", "splits/celebdf_test.csv"])

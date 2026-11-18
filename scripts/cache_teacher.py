@@ -31,6 +31,15 @@ SHARD = 50000
 
 
 def pick_teacher() -> Path:
+    """Final teacher chosen on val by scripts/pick_final.py (results/final_teacher.json); falls back to the old
+    rule (G3 vs its parent by val AUC) when no final teacher has been picked."""
+    from utils.common import final_teacher_name
+    if final_teacher_name() != "g3_full":
+        choice = resolve_runs(["final"], [42])[0]
+        with open(REPO_ROOT / "results" / "decisions.md", "a", encoding="utf-8") as f:
+            f.write(f"- {datetime.now():%Y-%m-%d %H:%M} teacher = final teacher {final_teacher_name()}: {choice.name}
+")
+        return choice
     g3 = resolve_runs(["g3_full"], [42])[0]
     parent = json.loads(json.dumps(__import__("yaml").safe_load((g3 / "config.yaml").read_text())))["parent"]
     par = resolve_runs([parent], [42])

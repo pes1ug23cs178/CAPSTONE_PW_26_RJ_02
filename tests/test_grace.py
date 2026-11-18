@@ -83,3 +83,15 @@ def test_unlabelled_rows_give_no_class_loss():
     l1, _ = compute_loss(out, b1, cfg)
     l2, _ = compute_loss(out, b2, cfg)
     assert torch.allclose(l1, l2)
+
+
+def test_domain_on_patch_features():
+    """F2: the domain head reads mean-pooled CLIP patches (1024-d), and MMD uses the same features."""
+    dom = {"enabled": True, "input": "patches", "num_domains": 5, "dann_weight": 0.1, "mmd_weight": 0.1,
+           "mmd_on": "fake", "domain_on": "fake"}
+    cfg_model = {**BASE, "head": "concept", "freq_branch": "dct", "fusion": "gated", "domain": dom}
+    m = build_model(cfg_model, pretrained=False)
+    out = m(torch.rand(4, 3, 224, 224), alpha=0.5)
+    assert out["domain_feat"].shape == (4, 1024) and out["domain_logits"].shape == (4, 5)
+    logs = run_variant({"head": "concept", "freq_branch": "dct", "fusion": "gated", "domain": dom}, {"domain_logits": (4, 5)})
+    assert "domain_ce" in logs

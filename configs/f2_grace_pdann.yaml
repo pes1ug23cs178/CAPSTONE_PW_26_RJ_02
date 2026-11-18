@@ -1,0 +1,74 @@
+data:
+  augment:
+    blur_p: 0.1
+    color_jitter: 0.1
+    flip: 0.5
+    jpeg_p: 0.3
+    jpeg_q:
+    - 60
+    - 100
+  cell_weights:
+    Deepfakes: 1
+    Face2Face: 1
+    FaceSwap: 1
+    real: 3
+    sbi: 2
+  cells:
+  - real
+  - sbi
+  - Deepfakes
+  - Face2Face
+  - FaceSwap
+  sbi: true
+  tests:
+  - splits/ffpp_test.csv
+  - splits/dfd_test.csv
+  - splits/celebdf_test.csv
+  train: splits/ffpp_train.csv
+  val: splits/ffpp_val.csv
+loss:
+  concept: 0.5
+  map: 0.5
+  residual: 0.01
+  w_l1: 0.0001
+model:
+  backbone: clip_vitl14_lora
+  domain:
+    enabled: true
+    input: patches
+    num_domains: 5
+    dann_weight: 0.1
+    mmd_weight: 0.1
+    mmd_on: fake
+    domain_on: fake
+  freq_branch: dct
+  fusion: gated
+  grad_checkpointing: false
+  head: concept
+  lora:
+    alpha: 32
+    dropout: 0.1
+    r: 16
+  num_concepts: 10
+  save_trainable_only: true
+  z_dim: 512
+name: f2_grace_pdann
+notes: 'Final-model candidate: F1 + DANN/MMD (0.1, fake domains only) on mean-pooled CLIP patch features instead of z'
+optim:
+  batch_size: 32
+  ema: 0.999
+  epochs: 12
+  grad_clip: 1.0
+  lr:
+    freq: 0.002
+    fusion: 0.001
+    heads: 0.001
+    lora: 0.0002
+  precision: bf16
+  steps_per_epoch: 1500
+  warmup_epochs: 1
+  weight_decay: 0.05
+parent: f1_grace_dct
+select:
+  hard: h264:40
+  sbi: true

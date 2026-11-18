@@ -20,6 +20,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional
 
+import numpy as np
 import torch
 import yaml
 from torch.utils.data import DataLoader
@@ -27,7 +28,8 @@ from torch.utils.data import DataLoader
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from data.dataset import FaceFrameDataset  # noqa: E402
 from data.sampler import CellBalancedBatchSampler  # noqa: E402
-from evaluate import choose_threshold, compute_metrics, concept_auc, concept_stats, evaluate_split, predict, video_table  # noqa: E402
+from evaluate import (choose_threshold, compute_metrics, concept_auc, concept_stats, evaluate_split, predict,  # noqa: E402
+                      safe_auc, video_table)  # noqa: E402
 from models.build import build_model  # noqa: E402
 from models.domain import compute_domain_alpha  # noqa: E402
 from models.ema import EMA  # noqa: E402
@@ -245,9 +247,29 @@ def main() -> None:
         rec = {"epoch": epoch, "train_time_s": round(train_time, 1), "val_video_auc": val_m["video_auc"],
                "val_frame_auc": val_m["frame_auc"], **{f"val_{k}": v for k, v in concept_stats(pred).items()},
                **{f"train_{k}": round(v / max(n, 1), 5) for k, v in sums.items()}}
+        # Optional harder selection (cfg.select), FF++ val data only: clean val video AUC saturates at 0.9999-1.0000
+        # for every CLIP model, so model selection was close to arbitrary. select.hard = a degradation of FF++ val
+        # (video AUC); select.sbi = self-blended val images (cache/sbi_val, made from FF++ val reals) vs the FF++ val
+        # real frames (frame AUC). Score = mean of clean video AUC and the enabled extras; ties -> clean frame AUC.
+        sel = cfg.get("select") or {}
+        extra = {}
+        if sel.get("hard"):
+            hp = predict(ema.model, val_csv, device, num_workers=args.num_workers, limit=cfg["data"].get("val_limit"),
+                         degrade=sel["hard"])
+            extra["val_hard_video_auc"] = compute_metrics(hp, None)["video_auc"]
+        if sel.get("sbi"):
+            sbi_csv = Path(cfg["paths"]["cache_root"]) / "sbi_val" / "sbi_val.csv"
+            sp = predict(ema.model, str(sbi_csv), device, num_workers=args.num_workers)
+            reals = pred.loc[pred["label"] == 0, "prob"].to_numpy()
+            extra["val_sbi_auc"] = safe_auc(np.r_[np.ones(len(sp), int), np.zeros(len(reals), int)],
+                                            np.r_[sp["prob"].to_numpy(), reals])
+        if extra:
+            extra["val_select_score"] = float(np.mean([val_m["video_auc"], *extra.values()]))
+            rec.update(extra)
         history.append(rec)
-        # select on val video AUC; ties (C1 saturated at 1.000 from epoch 3) are broken by val frame AUC
-        key = (round(val_m["video_auc"], 6), round(val_m["frame_auc"], 6))
+        # select on val video AUC (or the select score); ties (C1 saturated at 1.000 from epoch 3) -> val frame AUC
+        primary = extra.get("val_select_score", val_m["video_auc"])
+        key = (round(primary, 6), round(val_m["frame_auc"], 6))
         improved = key > best_key
         if improved:
             best_key = key
@@ -257,7 +279,8 @@ def main() -> None:
             (run_dir / "val_threshold.json").write_text(json.dumps(thr, indent=2))
         (run_dir / "history.json").write_text(json.dumps(history, indent=2))
         log.info("EPOCH %d done in %.0fs | val video AUC %.4f frame AUC %.4f %s%s", epoch, train_time,
-                 val_m["video_auc"], val_m["frame_auc"], {k: round(v, 4) for k, v in concept_stats(pred).items()},
+                 val_m["video_auc"], val_m["frame_auc"],
+                 {**{k: round(v, 4) for k, v in concept_stats(pred).items()}, **{k: round(v, 4) for k, v in extra.items()}},
                  " *best*" if improved else "")
 
     end = datetime.now()

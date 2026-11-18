@@ -27,8 +27,9 @@ DEFAULT_DEGRADES = ["clean", "jpeg:90", "jpeg:70", "jpeg:50", "jpeg:30", "down:0
 
 
 def resolve_runs(names: List[str], seeds: List[int]) -> List[Path]:
+    from utils.common import resolve_final
     runs = []
-    for name in names:
+    for name in resolve_final(names):
         p = Path(name)
         if p.is_dir():
             runs.append(p)

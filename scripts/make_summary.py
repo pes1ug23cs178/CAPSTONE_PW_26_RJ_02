@@ -54,6 +54,9 @@ def main() -> None:
                        ("b1_swin", "b2_swin_dann", "DANN on Swin-B with real as a domain (runbook spec)"),
                        ("b1_swin", "b2f_swin_dann_fake", "DANN on Swin-B over fake domains only"),
                        ("g3_full", "a3_linear_head", "Removing the concept head from G3 (A3)"),
+                       ("g2_dct", "f1_grace_dct", "Residual penalty 1e-2 + harder val selection on G2-DCT (F1)"),
+                       ("f1_grace_dct", "f2_grace_pdann", "DANN/MMD on patch features (F2 vs F1)"),
+                       ("g3_full", "f2_grace_pdann", "Domain terms on patch features instead of z (F2 vs G3)"),
                        ("s0_student", "s3_kd_full", "Full distillation over a teacher-free student")]:
         if have(a) and have(b):
             s = compare(a, b, what)
@@ -70,9 +73,11 @@ def main() -> None:
     eff = REPO_ROOT / "results" / "efficiency.csv"
     if eff.exists():
         e = pd.read_csv(eff).set_index("model")
-        if "s3_kd_full" in e.index and "g3_full" in e.index:
+        from utils.common import final_teacher_name
+        t = final_teacher_name()
+        if "s3_kd_full" in e.index and t in e.index:
             lines.append(f"- The S3 student has {e.loc['s3_kd_full', 'params_m']} M parameters and {e.loc['s3_kd_full', 'gflops']} GFLOPs "
-                         f"vs {e.loc['g3_full', 'params_m']} M and {e.loc['g3_full', 'gflops']} GFLOPs for G3"
+                         f"vs {e.loc[t, 'params_m']} M and {e.loc[t, 'gflops']} GFLOPs for the teacher ({t})"
                          + (f"; ONNX CPU latency {e.loc['s3_kd_full', 'cpu_onnx_latency_ms_bs1']} ms per face." if 'cpu_onnx_latency_ms_bs1' in e.columns else "."))
     ex = REPO_ROOT / "results" / "explain_metrics.csv"
     if ex.exists():

@@ -75,3 +75,15 @@ def append_experiment(row: Dict[str, object], path: Optional[Path] = None) -> No
 
 def default_num_workers() -> int:
     return int(os.environ.get("GRACE_NUM_WORKERS", 6))
+
+
+def final_teacher_name() -> str:
+    """Config name of the final GRACE teacher, chosen on FF++ val by scripts/pick_final.py (falls back to g3_full)."""
+    import json
+    p = REPO_ROOT / "results" / "final_teacher.json"
+    return json.loads(p.read_text())["name"] if p.exists() else "g3_full"
+
+
+def resolve_final(names):
+    """Replace the token "final" by the final teacher's config name."""
+    return [final_teacher_name() if n == "final" else n for n in names]

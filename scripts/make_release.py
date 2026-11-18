@@ -26,7 +26,7 @@ def sha256(p: Path) -> str:
 def main() -> None:
     rel = REPO_ROOT / "release"
     rel.mkdir(exist_ok=True)
-    for name, out in (("g3_full", "grace_teacher_g3"), ("s3_kd_full", "grace_student_s3")):
+    for name, out in (("final", "grace_teacher"), ("s3_kd_full", "grace_student_s3")):
         run = resolve_runs([name], [42])[0]
         shutil.copy2(run / "best.pth", rel / f"{out}.pth")
         for extra in ("val_threshold.json", "temperature.json", "config.yaml"):

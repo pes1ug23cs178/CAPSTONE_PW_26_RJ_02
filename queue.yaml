@@ -64,18 +64,26 @@ jobs:
   - name: robustness_eval
     cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin b2_swin_dann b2f_swin_dann_fake c1_clip_lora c2_clip_sbi g1_concepts g2_dct g2_fft g3_full a3_linear_head
     after: a3_linear_head_s42
-  - name: g3_full_s1
-    cmd: python scripts/run_snapshot.py -- python train.py --config configs/g3_full.yaml --seed 1
-    after: g3_full_s42
-  - name: tsne_figure
-    cmd: python scripts/run_snapshot.py -- python scripts/plot_tsne.py --models b1_swin g2_dct g3_full
-    after: robustness_eval
+  # ---- final-model fix (user request 2026-11-18): harder val selection, DANN on patch features, G2-DCT base ----
+  - name: smoke_f2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/f2_grace_pdann.yaml --override name=smoke_f2 optim.epochs=1 optim.steps_per_epoch=30 data.val_limit=400 --no-test-eval
+  - name: f1_grace_dct_s42
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/f1_grace_dct.yaml --seed 42
+    after: smoke_f2
+  - name: f2_grace_pdann_s42
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/f2_grace_pdann.yaml --seed 42
+  - name: robustness_eval_final
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models f1_grace_dct f2_grace_pdann --out results/robustness_final_candidates.csv
+    after: f2_grace_pdann_s42
+  - name: pick_final
+    cmd: python scripts/run_snapshot.py -- python scripts/pick_final.py
+    after: f2_grace_pdann_s42
   - name: sbi_pool
     cmd: python scripts/run_snapshot.py -- python scripts/make_sbi_pool.py
     after: landmarks_ffpp_real
   - name: teacher_cache
     cmd: python scripts/run_snapshot.py -- python scripts/cache_teacher.py --teacher auto
-    after: g3_full_s42
+    after: pick_final
   - name: s0_student_s42
     cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s0_student.yaml --seed 42
     after: sbi_pool
@@ -85,9 +93,15 @@ jobs:
   - name: s3_kd_full_s42
     cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3_kd_full.yaml --seed 42
     after: teacher_cache
+  - name: final_s1
+    cmd: python scripts/run_snapshot.py -- python scripts/train_final.py --seed 1
+    after: pick_final
   - name: s3_kd_full_s1
     cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3_kd_full.yaml --seed 1
     after: s3_kd_full_s42
+  - name: tsne_figure
+    cmd: python scripts/run_snapshot.py -- python scripts/plot_tsne.py --models b1_swin g2_dct g3_full final
+    after: pick_final
   - name: export_onnx
     cmd: python scripts/run_snapshot.py -- python scripts/export_onnx.py --out release/grace_student.onnx
     after: s3_kd_full_s42
@@ -95,10 +109,10 @@ jobs:
     cmd: python scripts/run_snapshot.py -- python scripts/agreement.py
     after: s3_kd_full_s42
   - name: benchmark
-    cmd: python scripts/run_snapshot.py -- python scripts/benchmark.py --models b1_swin g3_full s0_student s3_kd_full --onnx release/grace_student.onnx
+    cmd: python scripts/run_snapshot.py -- python scripts/benchmark.py --models b1_swin final s0_student s3_kd_full --onnx release/grace_student.onnx
     after: export_onnx
   - name: calibrate
-    cmd: python scripts/run_snapshot.py -- python scripts/calibrate.py --models b1_swin g3_full s3_kd_full
+    cmd: python scripts/run_snapshot.py -- python scripts/calibrate.py --models b1_swin final s3_kd_full
     after: s3_kd_full_s42
   - name: fig_explanations
     cmd: python scripts/run_snapshot.py -- python scripts/fig_explanations.py
@@ -110,7 +124,7 @@ jobs:
     cmd: python scripts/run_snapshot.py -- python scripts/app_check.py
     after: calibrate
   - name: final_eval_all
-    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin b2_swin_dann b2f_swin_dann_fake c1_clip_lora c2_clip_sbi g1_concepts g2_dct g2_fft g3_full a3_linear_head s0_student s2_kd_logits s3_kd_full --seeds 42 1
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin b2_swin_dann b2f_swin_dann_fake c1_clip_lora c2_clip_sbi g1_concepts g1r_concepts_res1e2 c2q_clip_sbi_quarter g2_dct g2_fft g3_full a3_linear_head f1_grace_dct f2_grace_pdann s0_student s2_kd_logits s3_kd_full --seeds 42 1
     after: s3_kd_full_s1
   - name: make_tables
     cmd: python scripts/run_snapshot.py -- python scripts/make_tables.py
@@ -121,27 +135,23 @@ jobs:
   - name: make_release
     cmd: python scripts/run_snapshot.py -- python scripts/make_release.py
     after: make_tables
-  # ---- optional fillers (runbook order), then the extra FF++ + DFD experiment, then refresh results ----
-  - name: g3_dann003_s42
-    cmd: python scripts/run_snapshot.py -- python train.py --config configs/g3_dann003.yaml --seed 42
-  - name: a3_dann003_s42
-    cmd: python scripts/run_snapshot.py -- python train.py --config configs/a3_dann003.yaml --seed 42
-  - name: g3_full_s2
-    cmd: python scripts/run_snapshot.py -- python train.py --config configs/g3_full.yaml --seed 2
-    after: g3_full_s42
+  # ---- optional fillers, then the extra FF++ + DFD experiment, then refresh results ----
+  - name: final_s2
+    cmd: python scripts/run_snapshot.py -- python scripts/train_final.py --seed 2
+    after: pick_final
   - name: s3_kd_full_s2
     cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3_kd_full.yaml --seed 2
     after: s3_kd_full_s42
   - name: d2_unsup_adapt_s42
     cmd: python scripts/run_snapshot.py -- "python scripts/make_adapt_splits.py && python scripts/make_extra_configs.py && python train.py --config configs/d2_unsup_adapt.yaml --seed 42"
-    after: g3_full_s42
+    after: pick_final
   - name: b1_swin_s1
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/b1_swin.yaml --seed 1
   - name: x1_ffpp_dfd_s42
     cmd: python scripts/run_snapshot.py -- "python scripts/make_adapt_splits.py && python scripts/make_extra_configs.py && python train.py --config configs/x1_ffpp_dfd.yaml --seed 42"
-    after: g3_full_s42
+    after: pick_final
   - name: final_eval_all_v2
-    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin b2_swin_dann b2f_swin_dann_fake c1_clip_lora c2_clip_sbi g1_concepts g2_dct g2_fft g3_full a3_linear_head s0_student s2_kd_logits s3_kd_full d2_unsup_adapt --seeds 42 1 2
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin b2_swin_dann b2f_swin_dann_fake c1_clip_lora c2_clip_sbi g1_concepts g1r_concepts_res1e2 c2q_clip_sbi_quarter g2_dct g2_fft g3_full a3_linear_head f1_grace_dct f2_grace_pdann s0_student s2_kd_logits s3_kd_full d2_unsup_adapt --seeds 42 1 2
     after: x1_ffpp_dfd_s42
   - name: make_tables_v2
     cmd: python scripts/run_snapshot.py -- "python scripts/make_tables.py && python scripts/make_summary.py && python scripts/make_release.py"

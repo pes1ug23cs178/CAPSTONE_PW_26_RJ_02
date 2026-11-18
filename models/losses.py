@@ -67,7 +67,7 @@ def compute_loss(out: Dict[str, torch.Tensor], batch: Dict[str, torch.Tensor], c
             terms["domain_ce"] = F.cross_entropy(out["domain_logits"][valid].float(), d[valid])
             weights["domain_ce"] = float(dom.get("dann_weight", 0.1))
             only = FAKE_DOMAINS if dom.get("mmd_on", "all") == "fake" else None
-            terms["mmd"] = pairwise_mmd(out["z"][valid].float(), d[valid], only=only)
+            terms["mmd"] = pairwise_mmd(out.get("domain_feat", out["z"])[valid].float(), d[valid], only=only)
             weights["mmd"] = float(dom.get("mmd_weight", 0.1))
 
     dist = cfg.get("distill") or {}

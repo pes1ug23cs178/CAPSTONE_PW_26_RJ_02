@@ -53,7 +53,8 @@ def engine(mode: str):
             onnx = REPO / "release" / "grace_student.onnx"
             _engines[mode] = QuickEngine(onnx, onnx.with_suffix(".json"), temperature(latest_run("s3_kd_full")))
         else:
-            run = latest_run("g3_full")
+            from utils.common import final_teacher_name
+            run = latest_run(final_teacher_name())
             _engines[mode] = DeepEngine(run, temperature(run))
     return _engines[mode]
 

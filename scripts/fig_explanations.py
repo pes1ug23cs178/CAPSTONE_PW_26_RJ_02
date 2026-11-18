@@ -51,8 +51,8 @@ def main() -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     device = torch.device("cuda")
-    runs = {n: resolve_runs([n], [42])[0] for n in ("g3_full", "b1_swin", "c1_clip_lora", "s3_kd_full")}
-    rows = pick_rows(runs["g3_full"])
+    runs = {n: resolve_runs([n], [42])[0] for n in ("final", "b1_swin", "c1_clip_lora", "s3_kd_full")}
+    rows = pick_rows(runs["final"])
     models = {n: load_model_from_ckpt(str(r / "best.pth"), device)[0] for n, r in runs.items()}
     data_root = load_paths()["data_root"]
     jpeg30 = ImageDegrade("jpeg", 30)
@@ -61,9 +61,9 @@ def main() -> None:
     for i, r in rows.iterrows():
         img = load_rgb(data_root / r.frame_path)
         x = torch.from_numpy(img).permute(2, 0, 1).float().div(255)[None].to(device)
-        cm_g3 = concept_maps(models["g3_full"], x)
+        cm_g3 = concept_maps(models["final"], x)
         with torch.no_grad():
-            o = models["g3_full"](x)
+            o = models["final"](x)
         scores = torch.sigmoid(o["concepts"][0].float()).cpu().numpy()
         top = int(np.argmax(scores))
         xs = torch.from_numpy(jpeg30(img)).permute(2, 0, 1).float().div(255)[None].to(device)
