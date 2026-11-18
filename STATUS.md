@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `tsne_figure` (started 02:00), then ONNX export, agreement, benchmark, calibration, explanations, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
+- GPU job: `agreement` (started 02:03), then agreement, benchmark, calibration, explanations, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -149,3 +149,4 @@ See `splits/counts.md` for the full table.
 - 2026-11-19 00:35 S2 done: logit KD from F1 beats S0 on every test split (FF++ 0.991 vs 0.979, DFD 0.869 vs 0.836, Celeb-DF 0.810 vs 0.778). Concept AUC near chance except c1 0.93 (S2 copies only the logit, so its concepts are not trained; expected). The 'Reloaded 0.9893 vs trainer 0.9667' gap is by design, not a bug: students select on FF++ val with jpeg:50 inputs (`data.val_degrade`), the reload line scores clean val (same for S0). S3 started.
 - 2026-11-19 01:18 S3 done: FF++ 0.985, DFD 0.854, Celeb-DF 0.823. vs S2 (logit only): -0.006 / -0.015 / +0.013, i.e. same accuracy within seed noise, but S3 also inherits the explanations (concept AUC on sbi_test: c6/c7/c8 0.985-0.989, c1 0.957, c3 0.84 vs S2 near chance). vs S0 (no teacher): +0.006 / +0.018 / +0.045. Concept share 0.47-0.54 (below the teacher's 0.8). S3 seed 1 started.
 - 2026-11-19 02:00 S3 seed 1 done: FF++ 0.977, DFD 0.848, Celeb-DF 0.779 (seed 42: 0.985 / 0.854 / 0.823). Student seed spread on Celeb-DF is 0.045, larger than the teacher's 0.03: the S3 vs S0 Celeb-DF gain (+0.045 at seed 42) is not reliable from one seed; the DFD gain (+0.012 to +0.018 over S0) holds for both seeds. S3 seed 2 is queued as a filler. t-SNE started.
+- 2026-11-19 02:03 t-SNE figure done (`results/fig_tsne.png`, z features of B1 / G2-DCT / G3 / F1 on FF++, DFD, Celeb-DF test): B1 clusters by dataset; G3 collapses into thin 1-D strings (consistent with its z holding only the frequency projection after DANN emptied it); G2-DCT and F1 mix datasets more. ONNX export done: `release/grace_student.onnx` (19.4 MB, S3 seed 42), max |torch - onnx| logit 1.4e-05, concepts 1.5e-05, maps 1.3e-04 (pass).
