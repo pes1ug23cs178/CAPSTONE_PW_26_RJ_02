@@ -77,7 +77,7 @@ def training_index():
 
 
 def overlay(face_crop: np.ndarray, m: np.ndarray, opacity: float) -> np.ndarray:
-    heat = (cm.get_cmap("jet")(m)[..., :3] * 255).astype(np.uint8)
+    heat = (matplotlib.colormaps["jet"](m)[..., :3] * 255).astype(np.uint8)
     return ((1 - opacity) * face_crop + opacity * heat).astype(np.uint8)
 
 
@@ -181,7 +181,10 @@ def run_analysis(file, mode, concept_name, opacity):
                         for n in training_index().nearest(top.z, 3)]
         except Exception as e:  # noqa: BLE001
             evidence = []
-            verdict += f"\n\n(Evidence unavailable: {e})"
+            if not (REPO / "cache" / "teacher").exists():
+                verdict += "\n\n(Nearest training faces appear once the teacher cache is built, after the final teacher is chosen.)"
+            else:
+                verdict += f"\n\n(Evidence unavailable: {type(e).__name__})"
     else:
         verdict += "\n\n(Nearest training faces are shown in Deep mode.)"
     report = build_report(path, a, eng, ci)
