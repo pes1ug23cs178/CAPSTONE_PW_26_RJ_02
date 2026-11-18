@@ -1,0 +1,28 @@
+{
+  "name": "f1_grace_dct",
+  "run": "f1_grace_dct_s42_20261118-1523",
+  "candidates": [
+    {
+      "name": "f1_grace_dct",
+      "run": "f1_grace_dct_s42_20261118-1523",
+      "epoch": 8,
+      "val_select_score": 0.9613746988136008,
+      "val_video_auc": 0.999119373776908,
+      "val_hard_video_auc": 0.9056751467710371,
+      "val_sbi_auc": 0.9793295758928572,
+      "val_frame_auc": 0.9866024129311399,
+      "val_concept_share": 0.8341281774865696
+    },
+    {
+      "name": "f2_grace_pdann",
+      "run": "f2_grace_pdann_s42_20261118-1721",
+      "epoch": 10,
+      "val_select_score": 0.8174373392143672,
+      "val_video_auc": 0.9851272015655577,
+      "val_hard_video_auc": 0.6345401174168298,
+      "val_sbi_auc": 0.8326446986607143,
+      "val_frame_auc": 0.9311620185986424,
+      "val_concept_share": 0.0
+    }
+  ]
+}
