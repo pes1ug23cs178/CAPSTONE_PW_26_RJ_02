@@ -234,7 +234,10 @@ def build_ui():
             with gr.Column(scale=1):
                 file = gr.File(label="Image or video (MP4, MOV, AVI; up to 200 MB)",
                                file_types=sorted(VIDEO_EXT | IMAGE_EXT))
-                mode = gr.Radio(["Quick", "Deep"], value="Quick" if QUICK_ONNX.exists() else "Deep", label="Mode")
+                # Deep by default: on re-cropped real faces the student drifts towards 0.5 (app check, 19 Nov)
+                mode = gr.Radio(["Quick", "Deep"], value="Deep", label="Mode",
+                                info="Deep: final teacher on GPU (most reliable). Quick: small student on CPU "
+                                     "(about 4 ms per face; less reliable, can read real faces as inconclusive).")
                 go = gr.Button("Analyse", variant="primary")
             with gr.Column(scale=2):
                 verdict = gr.Markdown()
