@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `teacher_cache_r3` (fp32, started 23:34), then S2/S3 (`_r2`), final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
+- GPU job: `s2_kd_logits_s42_r2` (started 23:53, ~40 min), then S3, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -142,3 +142,4 @@ See `splits/counts.md` for the full table.
 - 2026-11-18 21:31 S0 done (first real student run): FF++ 0.979, DFD 0.836, Celeb-DF 0.778; concept AUC on sbi_test region concepts 0.995-0.997, c1 0.97; val noisy (0.91-0.96 between epochs). Reloaded val 0.9656 vs trainer 0.9614 (best.pth evaluated without EMA/BN drift; small, noted). Teacher cache from F1 started.
 - 2026-11-18 21:38 teacher_cache_r2 failed its own check (max |cached - fresh| logit 0.166 > 1e-3). Diagnosed: not a bug (no duplicate frames, model in eval mode) but bf16 autocast noise that depends on batch composition (same crops, batch 100 vs 10: 0.106; cached vs fp32: 0.48), while fp32 is batch-invariant to 4e-5. Fix: the teacher cache runs in fp32 (more faithful soft labels too). Re-queued as `teacher_cache_r3`; S2/S3 re-queued as `s2_kd_logits_s42_r2` / `s3_kd_full_s42_r2` (the originals were marked blocked) and all their dependents rewired. `final_s1` runs meanwhile.
 - 2026-11-18 23:34 F1 seed 1 done: FF++ 0.9986, DFD 0.950, Celeb-DF 0.910 (seed 42: 0.9992 / 0.947 / 0.881), concept share 0.80-0.83 (pass on every split). Seed spread on Celeb-DF is 0.03, so single-seed differences below ~0.03 there are not meaningful. Teacher cache (fp32) started.
+- 2026-11-18 23:53 Teacher cache (fp32, F1) done: 86,058 crops, check max |cached - fresh| = 6.7e-06 (pass). S2 started.
