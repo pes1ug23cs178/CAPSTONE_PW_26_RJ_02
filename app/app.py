@@ -7,6 +7,7 @@ from __future__ import annotations
 import base64
 import io
 import json
+import os
 import sys
 import tempfile
 from datetime import datetime
@@ -14,8 +15,10 @@ from pathlib import Path
 
 import numpy as np
 
-REPO = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO))
+CODE = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(CODE))
+# data (runs/, cache/, release/) live in the real repo; under scripts/run_snapshot.py the code runs from a frozen copy
+REPO = Path(os.environ.get("GRACE_REPO_ROOT") or CODE).resolve()
 
 import gradio as gr  # noqa: E402
 import matplotlib  # noqa: E402

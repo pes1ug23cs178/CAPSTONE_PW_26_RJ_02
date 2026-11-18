@@ -157,7 +157,14 @@ def main() -> None:
             rows.append({"method": name, "metric": f"concept_share_{split}", "value": m.get("concept_share"), "n": m["n_frames"]})
     out = REPO_ROOT / "results" / "explain_metrics.csv"
     out.parent.mkdir(exist_ok=True)
-    pd.DataFrame(rows).to_csv(out, index=False)
+    # internal key "G3" is the final teacher (names["g3"] = "final"); label it by its real name in the output
+    from utils.common import final_teacher_name
+    tlabel = final_teacher_name().split("_")[0].upper()
+    df = pd.DataFrame(rows)
+    for col in ("method", "model"):
+        if col in df:
+            df[col] = df[col].astype(str).str.replace(r"^G3", tlabel, regex=True)
+    df.to_csv(out, index=False)
     print(f"wrote {out}")
 
 

@@ -1,0 +1,78 @@
+method,metric,value,n
+F1 c1,pointing_game,0.5175,2000
+F1 c1,mask_iou,0.2248227981270008,2000
+F1 region,pointing_game,0.9381202568593111,1713
+F1 region,mask_iou,0.384357949201934,1713
+B1 Grad-CAM,pointing_game,0.155,2000
+B1 Grad-CAM,mask_iou,0.051568467824757505,2000
+C1 rollout,pointing_game,0.0125,2000
+C1 rollout,mask_iou,0.01612741848490417,2000
+S3 c1,pointing_game,0.725,2000
+S3 c1,mask_iou,0.25933170290411883,2000
+random,pointing_game,0.2465,2000
+random,mask_iou,0.06659561422344368,2000
+F1 c1,deletion_auc,0.983685498714447,500
+F1 c1,insertion_auc,0.8956021344661713,500
+B1 Grad-CAM,deletion_auc,0.7019741538079106,500
+B1 Grad-CAM,insertion_auc,0.8725472377538681,500
+C1 rollout,deletion_auc,0.7748667474985123,500
+C1 rollout,insertion_auc,0.7961472475528717,500
+S3 c1,deletion_auc,0.9226344176530838,500
+S3 c1,insertion_auc,0.9284611182808876,500
+random,deletion_auc,0.9081033005714416,500
+random,insertion_auc,0.9044966579675674,500
+F1,intervention_drop_top,0.053863195419311526,500
+F1,intervention_drop_random,0.0106909641623497,500
+S3,intervention_drop_top,0.021717473685741423,500
+S3,intervention_drop_random,0.004602649047970772,500
+F1,concept_auc_c1,0.980040375,2000
+F1,concept_auc_c2,0.8149804821905623,2000
+F1,concept_auc_c3,0.882208599243671,2000
+F1,concept_auc_c4,0.7748869756253846,2000
+F1,concept_auc_c5,0.7644986341773717,2000
+F1,concept_auc_c6,0.9950908014212397,2000
+F1,concept_auc_c7,0.9969313658477744,2000
+F1,concept_auc_c8,0.9934526247419524,2000
+F1,concept_auc_c9,0.8349788947773673,2000
+F1,concept_auc_c10,0.5147975147975148,2000
+S0,concept_auc_c1,0.97009475,2000
+S0,concept_auc_c2,0.8503243953085136,2000
+S0,concept_auc_c3,0.8834326036598893,2000
+S0,concept_auc_c4,0.781824180350795,2000
+S0,concept_auc_c5,0.7921807038051789,2000
+S0,concept_auc_c6,0.9950335570469797,2000
+S0,concept_auc_c7,0.9973784729202686,2000
+S0,concept_auc_c8,0.9965171335310835,2000
+S0,concept_auc_c9,0.862775554646481,2000
+S0,concept_auc_c10,0.5077830077830078,2000
+S3,concept_auc_c1,0.9571775,2000
+S3,concept_auc_c2,0.7558590991456638,2000
+S3,concept_auc_c3,0.8378207046344497,2000
+S3,concept_auc_c4,0.7250640768108056,2000
+S3,concept_auc_c5,0.736102205054413,2000
+S3,concept_auc_c6,0.9868752467429925,2000
+S3,concept_auc_c7,0.9853749346628604,2000
+S3,concept_auc_c8,0.9888734439576532,2000
+S3,concept_auc_c9,0.7727597552060745,2000
+S3,concept_auc_c10,0.5155710155710156,2000
+g1_concepts,concept_share_ffpp_test,0.2558243102885553,8823
+g1_concepts,concept_share_dfd_test,0.24355950905723162,40030
+g1_concepts,concept_share_celebdf_test,0.25130352195971245,16535
+g2_dct,concept_share_ffpp_test,0.289584409599024,8823
+g2_dct,concept_share_dfd_test,0.2670559514281399,40030
+g2_dct,concept_share_celebdf_test,0.2791678139356429,16535
+g2_fft,concept_share_ffpp_test,0.8579008566800191,8823
+g2_fft,concept_share_dfd_test,0.8757923277808417,40030
+g2_fft,concept_share_celebdf_test,0.8159701487233988,16535
+g3_full,concept_share_ffpp_test,1.0000000134078229,8823
+g3_full,concept_share_dfd_test,1.0000000022196336,40030
+g3_full,concept_share_celebdf_test,0.9999999998312027,16535
+f1_grace_dct,concept_share_ffpp_test,0.8333225120386663,8823
+f1_grace_dct,concept_share_dfd_test,0.824338148452797,40030
+f1_grace_dct,concept_share_celebdf_test,0.774920223269908,16535
+f2_grace_pdann,concept_share_ffpp_test,0.0,8823
+f2_grace_pdann,concept_share_dfd_test,0.0,40030
+f2_grace_pdann,concept_share_celebdf_test,0.0,16535
+s3_kd_full,concept_share_ffpp_test,0.5435590675089277,8823
+s3_kd_full,concept_share_dfd_test,0.5245416796780825,40030
+s3_kd_full,concept_share_celebdf_test,0.46953396394638947,16535
