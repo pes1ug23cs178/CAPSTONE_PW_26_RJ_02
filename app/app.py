@@ -36,6 +36,9 @@ _cropper = None
 _index = None
 
 
+QUICK_ONNX = REPO / "release" / "grace_student.onnx"
+
+
 def latest_run(name: str):
     runs = sorted((REPO / "runs").glob(f"{name}_s42_*"))
     runs = [r for r in runs if (r / "best.pth").exists()]
@@ -50,8 +53,7 @@ def temperature(run) -> float:
 def engine(mode: str):
     if mode not in _engines:
         if mode == "Quick":
-            onnx = REPO / "release" / "grace_student.onnx"
-            _engines[mode] = QuickEngine(onnx, onnx.with_suffix(".json"), temperature(latest_run("s3_kd_full")))
+            _engines[mode] = QuickEngine(QUICK_ONNX, QUICK_ONNX.with_suffix(".json"), temperature(latest_run("s3_kd_full")))
         else:
             from utils.common import final_teacher_name
             run = latest_run(final_teacher_name())
@@ -158,6 +160,9 @@ def run_analysis(file, mode, concept_name, opacity):
         return (f"Unsupported file type {ext}.",) + (None,) * 6
     if Path(path).stat().st_size > MAX_MB * 1e6:
         return (f"File is larger than {MAX_MB} MB.",) + (None,) * 6
+    if mode == "Quick" and not QUICK_ONNX.exists():
+        return ("**Quick mode is not available yet**: the compressed student model has not been trained and exported "
+                "(`release/grace_student.onnx`). Choose **Deep**.",) + (None,) * 6
     eng = engine(mode)
     a = analyse(path, eng, cropper(), is_video=ext in VIDEO_EXT)
     if not a.faces:
@@ -210,7 +215,7 @@ def build_ui():
             with gr.Column(scale=1):
                 file = gr.File(label="Image or video (MP4, MOV, AVI; up to 200 MB)",
                                file_types=sorted(VIDEO_EXT | IMAGE_EXT))
-                mode = gr.Radio(["Quick", "Deep"], value="Quick", label="Mode")
+                mode = gr.Radio(["Quick", "Deep"], value="Quick" if QUICK_ONNX.exists() else "Deep", label="Mode")
                 go = gr.Button("Analyse", variant="primary")
             with gr.Column(scale=2):
                 verdict = gr.Markdown()
