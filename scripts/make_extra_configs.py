@@ -28,8 +28,10 @@ def main() -> None:
     d2["data"].update(train="cache/adapt/d2_train.csv", domain_mode="dataset",
                       cells=list(g3["data"]["cells"]) + ["target"],
                       cell_weights={**g3["data"].get("cell_weights", {}), "target": 3})
-    # on patch features (domain.input), not z: on z the domain terms empty z instead of aligning (G3/A3 finding)
-    d2["model"]["domain"] = {"enabled": True, "input": "patches", "num_domains": 2, "dann_weight": 0.1, "mmd_weight": 0.1,
+    # on patch features (domain.input), not z: on z the domain terms empty z instead of aligning (G3/A3 finding).
+    # Weight 0.01, not 0.1: at 0.1 F2 made the patch tokens input-independent (pooled std 1.6e-5, concept AUC 0.5),
+    # i.e. the same "erase the features" shortcut as on z; at 1/10 the class + concept losses dominate.
+    d2["model"]["domain"] = {"enabled": True, "input": "patches", "num_domains": 2, "dann_weight": 0.01, "mmd_weight": 0.01,
                              "mmd_on": "all", "domain_on": "all"}
     (REPO_ROOT / "configs" / "d2_unsup_adapt.yaml").write_text(yaml.safe_dump(d2, sort_keys=False, width=120))
 
