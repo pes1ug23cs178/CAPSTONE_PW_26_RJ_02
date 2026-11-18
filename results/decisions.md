@@ -1,2 +1,4 @@
 - 2026-11-18 05:06 G3 base = g2_fft: g2_fft best on val ({'g1_concepts': 0.9999, 'g2_dct': 0.9999, 'g2_fft': 1.0})
 - 2026-11-18 20:49 final teacher = f1_grace_dct (f1_grace_dct_s42_20261118-1523) on val select score: f1_grace_dct 0.9614; f2_grace_pdann 0.8174
+- 2026-11-18 21:31 teacher = final teacher f1_grace_dct: f1_grace_dct_s42_20261118-1523
+- 2026-11-18 23:34 teacher = final teacher f1_grace_dct: f1_grace_dct_s42_20261118-1523

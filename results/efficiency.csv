@@ -1,0 +1,5 @@
+model,run,params_m,trainable_m,gflops,gpu_fps_bs64,cpu_onnx_latency_ms_bs1,cpu,cpu_threads
+b1_swin,b1_swin_s42_20261117-1307,86.75,86.75,15.43,640.3,,,
+f1_grace_dct,f1_grace_dct_s42_20261118-1523,306.94,306.94,81.46,286.2,,,
+s0_student,s0_student_s42_20261118-2050,4.71,4.71,0.39,3834.6,,,
+s3_kd_full,s3_kd_full_s42_20261119-0035,4.71,4.71,0.39,3939.3,4.2,"Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",4.0

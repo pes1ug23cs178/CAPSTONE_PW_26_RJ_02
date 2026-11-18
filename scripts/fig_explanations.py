@@ -1,8 +1,8 @@
 """T6.2: qualitative explanation grid -> results/fig_explanations.png (300 dpi).
 
-16 test crops by fixed seed from G3's test predictions: 8 correctly flagged fakes, 4 errors (misses or
+16 test crops by fixed seed from the final teacher's test predictions: 8 correctly flagged fakes, 4 errors (misses or
 false alarms), 4 correct reals, mixed over FF++, DFD and Celeb-DF.
-Columns: input | G3 top-concept map | G3 concept bars | B1 Grad-CAM | C1 attention rollout | S3 top-concept map (jpeg:30)
+Columns: input | final-teacher top-concept map | concept bars | B1 Grad-CAM | C1 attention rollout | S3 top-concept map (jpeg:30)
 """
 from __future__ import annotations
 
@@ -57,7 +57,8 @@ def main() -> None:
     data_root = load_paths()["data_root"]
     jpeg30 = ImageDegrade("jpeg", 30)
     fig, axes = plt.subplots(len(rows), 6, figsize=(18, 3 * len(rows)))
-    titles = ["input", "G3 top concept", "G3 concepts", "B1 Grad-CAM", "C1 rollout", "S3 top concept (jpeg:30)"]
+    tname = runs["final"].name.split("_s")[0].upper().replace("_GRACE_DCT", " (final teacher)")
+    titles = ["input", f"{tname} top concept", f"{tname} concepts", "B1 Grad-CAM", "C1 rollout", "S3 top concept (jpeg:30)"]
     for i, r in rows.iterrows():
         img = load_rgb(data_root / r.frame_path)
         x = torch.from_numpy(img).permute(2, 0, 1).float().div(255)[None].to(device)
@@ -82,7 +83,7 @@ def main() -> None:
             if i == 0:
                 ax.set_title(titles[j], fontsize=9)
         axes[i][0].set_title(f"{r.split} | {'fake' if r.label else 'real'} | p={r.prob:.2f}", fontsize=7)
-        axes[i][1].set_title(f"{CONCEPT_NAMES[top]}" + ("\nG3 top concept" if i == 0 else ""), fontsize=7)
+        axes[i][1].set_title(f"{CONCEPT_NAMES[top]}" + (f"\n{tname} top concept" if i == 0 else ""), fontsize=7)
     fig.tight_layout()
     out = REPO_ROOT / "results" / "fig_explanations.png"
     out.parent.mkdir(exist_ok=True)

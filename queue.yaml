@@ -126,6 +126,9 @@ jobs:
   - name: fig_explanations
     cmd: python scripts/run_snapshot.py -- python scripts/fig_explanations.py
     after: s3_kd_full_s42_r2
+  - name: fig_explanations_r2
+    cmd: python scripts/run_snapshot.py -- python scripts/fig_explanations.py
+    after: s3_kd_full_s42_r2
   - name: explain_eval
     cmd: python scripts/run_snapshot.py -- python scripts/explain_eval.py
     after: s3_kd_full_s42_r2
