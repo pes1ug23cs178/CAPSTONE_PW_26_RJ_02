@@ -28,7 +28,7 @@ from utils.config import REPO_ROOT  # noqa: E402
 @torch.no_grad()
 def outputs(model, csv, degrade, device):
     ds = FaceFrameDataset(csv, train=False, **degrade_args(csv, degrade))
-    cs, ms = [], []
+    cs, ms, raw = [], [], []
     for b in DataLoader(ds, batch_size=128, num_workers=6):
         with torch.autocast("cuda", dtype=torch.bfloat16):
             o = model(b["image"].to(device))
@@ -36,7 +36,18 @@ def outputs(model, csv, degrade, device):
         top = o["concepts"].float().argmax(1)
         m = torch.sigmoid(o["maps"].float())[torch.arange(len(top)), top][:, None]
         ms.append(F.interpolate(m, size=224, mode="bilinear", align_corners=False)[:, 0].cpu())
-    return torch.cat(cs).numpy(), torch.cat(ms)
+        raw.append(torch.sigmoid(o["maps"].float()).cpu())  # all K maps at native resolution (16x16 / 7x7)
+    return torch.cat(cs).numpy(), torch.cat(ms), torch.cat(raw)
+
+
+def maps_at(raw: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
+    """Map of concept idx[i] for each image, upsampled to 224."""
+    m = raw[torch.arange(len(idx)), idx][:, None]
+    return F.interpolate(m, size=224, mode="bilinear", align_corners=False)[:, 0]
+
+
+def iou(a: torch.Tensor, b: torch.Tensor) -> float:
+    return ((a & b).sum(1).float() / (a | b).sum(1).float()).mean().item()
 
 
 def top10_mask(m: torch.Tensor) -> torch.Tensor:
@@ -57,16 +68,23 @@ def main() -> None:
         csv = tmp_dir / f"_agree_{split}.csv"
         df.to_csv(csv, index=False)
         for degrade in (None, "jpeg:30"):
-            tc, tm = outputs(teacher, csv, degrade, device)
+            tc, tm, traw = outputs(teacher, csv, degrade, device)
             tmask = top10_mask(tm)
+            ttop = torch.from_numpy(tc.argmax(1))
+            tmask_same = top10_mask(maps_at(traw, ttop))
             for name, run in students.items():
                 model, _ = load_model_from_ckpt(str(run / "best.pth"), device)
-                sc, sm = outputs(model, csv, degrade, device)
+                sc, sm, sraw = outputs(model, csv, degrade, device)
                 rho = np.nanmean([spearmanr(a, b).statistic for a, b in zip(tc, sc)])
                 smask = top10_mask(sm)
-                iou = ((tmask & smask).sum(1).float() / (tmask | smask).sum(1).float()).mean().item()
+                # top_map_iou: each model's map at its OWN top concept (mixes concept choice with map location);
+                # map_iou_same_concept: both maps at the TEACHER's top concept (map location only);
+                # top_concept_agree: share of images where both pick the same top concept.
+                same = top10_mask(maps_at(sraw, ttop))
                 rows.append({"student": name, "split": split, "degrade": degrade or "clean",
-                             "spearman_concepts": round(float(rho), 4), "top_map_iou": round(iou, 4)})
+                             "spearman_concepts": round(float(rho), 4), "top_map_iou": round(iou(tmask, smask), 4),
+                             "map_iou_same_concept": round(iou(tmask_same, same), 4),
+                             "top_concept_agree": round(float((sc.argmax(1) == tc.argmax(1)).mean()), 4)})
                 print(rows[-1], flush=True)
                 del model
                 torch.cuda.empty_cache()

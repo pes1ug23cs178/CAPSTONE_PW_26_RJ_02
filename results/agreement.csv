@@ -1,0 +1,9 @@
+student,split,degrade,spearman_concepts,top_map_iou
+s0_student,celebdf_test,clean,0.7213,0.1571
+s3_kd_full,celebdf_test,clean,0.7446,0.128
+s0_student,celebdf_test,jpeg:30,0.7009,0.1175
+s3_kd_full,celebdf_test,jpeg:30,0.7036,0.0997
+s0_student,ffpp_test,clean,0.6449,0.1402
+s3_kd_full,ffpp_test,clean,0.7895,0.1131
+s0_student,ffpp_test,jpeg:30,0.6794,0.1233
+s3_kd_full,ffpp_test,jpeg:30,0.7662,0.1129

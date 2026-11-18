@@ -117,6 +117,9 @@ jobs:
   - name: benchmark
     cmd: python scripts/run_snapshot.py -- python scripts/benchmark.py --models b1_swin final s0_student s3_kd_full --onnx release/grace_student.onnx
     after: export_onnx
+  - name: agreement_r2
+    cmd: python scripts/run_snapshot.py -- python scripts/agreement.py
+    after: s3_kd_full_s42_r2
   - name: calibrate
     cmd: python scripts/run_snapshot.py -- python scripts/calibrate.py --models b1_swin final s3_kd_full
     after: s3_kd_full_s42_r2
