@@ -56,7 +56,9 @@ def run_model(model, ds, device, batch_size=128):
     dl = DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=6)
     outs = {"logit": [], "z": [], "concepts": [], "maps": []}
     for b in dl:
-        with torch.autocast("cuda", dtype=torch.bfloat16):
+        # fp32, not bf16 autocast: in bf16 the same crop's logit moved by up to 0.17 with batch composition (0.48 vs
+        # fp32), failing the 1e-3 check; fp32 is batch-invariant to 4e-5 (diagnosed 18 Nov on the F1 teacher).
+        with torch.no_grad():
             o = model(b["image"].to(device))
         outs["logit"].append(o["logit"].float().cpu().numpy())
         outs["z"].append(o["z"].float().cpu().numpy().astype(np.float16))

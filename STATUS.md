@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `teacher_cache_r2` from **F1 (final teacher)** (started 21:31), then S2/S3, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
+- GPU job: `final_s1` (F1 config, seed 1, started 21:38, ~2 h), then `teacher_cache_r3` (fp32), S2/S3 (`_r2`), final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -139,3 +139,4 @@ See `splits/counts.md` for the full table.
 - 2026-11-18 20:49 Robustness of F1/F2 done (`results/robustness_final_candidates.csv`); pick_final chose F1; sbi_pool started.
 - 2026-11-18 20:50 sbi_pool done (40,000 SBI images; student_train.csv 86,058 rows). teacher_cache failed on a syntax error (a literal newline in an f-string from the final-teacher edit, `scripts/cache_teacher.py:40`); fixed, all .py files compile-checked; re-queued as `teacher_cache_r2` right after S0, and S2/S3 now wait for it. S0 (no teacher) started.
 - 2026-11-18 21:31 S0 done (first real student run): FF++ 0.979, DFD 0.836, Celeb-DF 0.778; concept AUC on sbi_test region concepts 0.995-0.997, c1 0.97; val noisy (0.91-0.96 between epochs). Reloaded val 0.9656 vs trainer 0.9614 (best.pth evaluated without EMA/BN drift; small, noted). Teacher cache from F1 started.
+- 2026-11-18 21:38 teacher_cache_r2 failed its own check (max |cached - fresh| logit 0.166 > 1e-3). Diagnosed: not a bug (no duplicate frames, model in eval mode) but bf16 autocast noise that depends on batch composition (same crops, batch 100 vs 10: 0.106; cached vs fp32: 0.48), while fp32 is batch-invariant to 4e-5. Fix: the teacher cache runs in fp32 (more faithful soft labels too). Re-queued as `teacher_cache_r3`; S2/S3 re-queued as `s2_kd_logits_s42_r2` / `s3_kd_full_s42_r2` (the originals were marked blocked) and all their dependents rewired. `final_s1` runs meanwhile.

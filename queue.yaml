@@ -90,39 +90,42 @@ jobs:
   - name: teacher_cache_r2
     cmd: python scripts/run_snapshot.py -- python scripts/cache_teacher.py --teacher auto
     after: pick_final
-  - name: s2_kd_logits_s42
+  - name: teacher_cache_r3
+    cmd: python scripts/run_snapshot.py -- python scripts/cache_teacher.py --teacher auto
+    after: pick_final
+  - name: s2_kd_logits_s42_r2
     cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s2_kd_logits.yaml --seed 42
-    after: teacher_cache_r2
-  - name: s3_kd_full_s42
+    after: teacher_cache_r3
+  - name: s3_kd_full_s42_r2
     cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3_kd_full.yaml --seed 42
-    after: teacher_cache_r2
+    after: teacher_cache_r3
   - name: final_s1
     cmd: python scripts/run_snapshot.py -- python scripts/train_final.py --seed 1
     after: pick_final
   - name: s3_kd_full_s1
     cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3_kd_full.yaml --seed 1
-    after: s3_kd_full_s42
+    after: s3_kd_full_s42_r2
   - name: tsne_figure
     cmd: python scripts/run_snapshot.py -- python scripts/plot_tsne.py --models b1_swin g2_dct g3_full final
     after: pick_final
   - name: export_onnx
     cmd: python scripts/run_snapshot.py -- python scripts/export_onnx.py --out release/grace_student.onnx
-    after: s3_kd_full_s42
+    after: s3_kd_full_s42_r2
   - name: agreement
     cmd: python scripts/run_snapshot.py -- python scripts/agreement.py
-    after: s3_kd_full_s42
+    after: s3_kd_full_s42_r2
   - name: benchmark
     cmd: python scripts/run_snapshot.py -- python scripts/benchmark.py --models b1_swin final s0_student s3_kd_full --onnx release/grace_student.onnx
     after: export_onnx
   - name: calibrate
     cmd: python scripts/run_snapshot.py -- python scripts/calibrate.py --models b1_swin final s3_kd_full
-    after: s3_kd_full_s42
+    after: s3_kd_full_s42_r2
   - name: fig_explanations
     cmd: python scripts/run_snapshot.py -- python scripts/fig_explanations.py
-    after: s3_kd_full_s42
+    after: s3_kd_full_s42_r2
   - name: explain_eval
     cmd: python scripts/run_snapshot.py -- python scripts/explain_eval.py
-    after: s3_kd_full_s42
+    after: s3_kd_full_s42_r2
   - name: app_check
     cmd: python scripts/run_snapshot.py -- python scripts/app_check.py
     after: calibrate
@@ -144,7 +147,7 @@ jobs:
     after: pick_final
   - name: s3_kd_full_s2
     cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3_kd_full.yaml --seed 2
-    after: s3_kd_full_s42
+    after: s3_kd_full_s42_r2
   - name: d2_unsup_adapt_s42
     cmd: python scripts/run_snapshot.py -- "python scripts/make_adapt_splits.py && python scripts/make_extra_configs.py && python train.py --config configs/d2_unsup_adapt.yaml --seed 42"
     after: pick_final
