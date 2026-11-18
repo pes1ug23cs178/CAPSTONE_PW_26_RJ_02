@@ -82,12 +82,21 @@ def overlay(face_crop: np.ndarray, m: np.ndarray, opacity: float) -> np.ndarray:
 
 
 def top_faces(a: Analysis, k: int = 4):
-    return sorted(range(len(a.faces)), key=lambda i: -a.faces[i].prob)[:k]
+    """Most suspicious faces, front-facing ones first (extreme poses are shown only if nothing else is left)."""
+    return sorted(range(len(a.faces)), key=lambda i: (not a.faces[i].reliable, -a.faces[i].prob))[:k]
 
 
 def timeline_fig(a: Analysis):
     fig, ax = plt.subplots(figsize=(7, 2.6))
-    ax.plot([f.prob for f in a.faces], marker="o")
+    probs = [f.prob for f in a.faces]
+    ax.plot(probs, color="tab:blue", alpha=0.5)
+    ok = [i for i, f in enumerate(a.faces) if f.reliable]
+    bad = [i for i, f in enumerate(a.faces) if not f.reliable]
+    ax.scatter(ok, [probs[i] for i in ok], color="tab:blue", zorder=3, label="used for the verdict")
+    if bad:
+        ax.scatter(bad, [probs[i] for i in bad], color="lightgray", edgecolor="gray", zorder=3,
+                   label="not used: head turned or tilted too far")
+        ax.legend(fontsize=7, loc="upper left")
     ax.axhspan(0.35, 0.65, color="orange", alpha=0.12)
     ax.set(ylim=(0, 1), xlabel="Face frame (in time order)", ylabel="Fake probability")
     extra = []
@@ -112,7 +121,8 @@ def concept_fig(contrib: np.ndarray, residual: float):
 
 
 def gallery_items(a: Analysis, concept_idx: int, opacity: float):
-    return [(overlay(a.faces[i].crop, a.faces[i].maps[concept_idx], opacity), f"frame {i}: p={a.faces[i].prob:.2f}")
+    return [(overlay(a.faces[i].crop, a.faces[i].maps[concept_idx], opacity),
+             f"frame {i}: p={a.faces[i].prob:.2f}" + ("" if a.faces[i].reliable else " (extreme pose, not used)"))
             for i in top_faces(a)]
 
 
@@ -141,7 +151,7 @@ table{{border-collapse:collapse}} td{{border:1px solid #ccc;padding:4px 8px}}</s
 <p><b>File:</b> {Path(path).name}<br><b>SHA-256:</b> {sha256_file(path)}<br><b>Time:</b> {datetime.now():%Y-%m-%d %H:%M:%S}<br>
 <b>Mode / model:</b> {eng.name} ({eng.version})</p>
 <h2>Verdict: {a.verdict} (calibrated probability {a.prob:.2f})</h2>
-<p>Faces analysed: {len(a.faces)} of {a.n_frames} sampled frames.</p>
+<p>Faces analysed: {len(a.faces)} of {a.n_frames} sampled frames; {a.n_used} front-facing faces used for the verdict.</p>
 <h3>Timeline</h3><img src="data:image/png;base64,{fig_to_b64(timeline_fig(a))}">
 <h3>Most suspicious frames (map: {CONCEPT_LABELS[concept_idx]})</h3>{tops}
 <h3>Concept contributions (mean over faces)</h3><table>{rows}</table>
@@ -168,8 +178,11 @@ def run_analysis(file, mode, concept_name, opacity):
     if not a.faces:
         return (f"**{a.message}**",) + (None,) * 6
     ci = CONCEPT_LABELS.index(concept_name)
-    verdict = (f"## {a.verdict}\nCalibrated fake probability **{a.prob:.2f}** · mode: {eng.name} · "
-               f"{len(a.faces)} faces from {a.n_frames} frames\n\n_{LIMITATION}_")
+    skipped = len(a.faces) - a.n_used
+    used_txt = (f"verdict from {a.n_used} of {len(a.faces)} faces ({skipped} skipped: head turned or tilted beyond "
+                "the training range)" if skipped else f"{len(a.faces)} faces from {a.n_frames} frames")
+    verdict = (f"## {a.verdict}\nCalibrated fake probability **{a.prob:.2f}** · mode: {eng.name} · {used_txt}"
+               + (f"\n\n**{a.message}**" if a.message else "") + f"\n\n_{LIMITATION}_")
     top = a.faces[top_faces(a)[0]]
     evidence = []
     if top.z is not None:

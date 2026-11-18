@@ -18,7 +18,7 @@ import math
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Tuple, Dict, List, Optional
 
 os.environ.setdefault("TORCHDYNAMO_DISABLE", "1")  # face-alignment's torch.compile needs Triton (absent on Windows)
 
@@ -52,6 +52,29 @@ def sha256_file(path: str) -> str:
 
 MARGIN = 1.02
 
+# Head-pose limits = 0.1st / 99.9th percentile over all 31,817 FF++ training real crops with landmarks (cache/landmarks,
+# measured 18 Nov 2026), i.e. a face is skipped only if its pose is rarer than 1 in 1,000 training faces:
+# yaw = (|nose-jaw_left| - |nose-jaw_right|) / sum  (0 = frontal, sign = turn direction; near-profile ~ +-0.75)
+# pitch = |eyes-nose tip| / |eyes-chin|             (median 0.345; small = head tilted back / camera under the chin)
+# Such faces look unlike anything the model was trained on; on a real phone video they produced false alarms
+# (p 0.7-0.97 at near-profile or pitch < 0.15, p 0.13-0.22 when frontal), so they do not enter the verdict.
+# (A first version used the 1st / 99th percentiles; that also dropped ordinary three-quarter views, |yaw| ~ 0.47,
+# which the model scores correctly, so the limits were widened to the 0.1 / 99.9 tails.)
+POSE_LIMITS = {"yaw": (-0.576, 0.571), "pitch": (0.174, 0.641)}
+
+
+def head_pose(lm: np.ndarray) -> Tuple[float, float]:
+    """(yaw, pitch) proxies from 68 2-D landmarks; rotation- and scale-invariant."""
+    lm = np.asarray(lm, dtype=np.float64).reshape(-1, 2)[:68]
+    n = lm[30]
+    dl, dr = np.linalg.norm(n - lm[0]), np.linalg.norm(n - lm[16])
+    eyes = (lm[36:42].mean(0) + lm[42:48].mean(0)) / 2
+    return float((dl - dr) / (dl + dr + 1e-8)), float(np.linalg.norm(n - eyes) / (np.linalg.norm(lm[8] - eyes) + 1e-8))
+
+
+def pose_ok(yaw: float, pitch: float) -> bool:
+    return POSE_LIMITS["yaw"][0] <= yaw <= POSE_LIMITS["yaw"][1] and POSE_LIMITS["pitch"][0] <= pitch <= POSE_LIMITS["pitch"][1]
+
 
 class FaceCropper:
     def __init__(self, device: Optional[str] = None) -> None:
@@ -60,6 +83,10 @@ class FaceCropper:
         self.fa = face_alignment.FaceAlignment(face_alignment.LandmarksType.TWO_D, device=dev, face_detector="sfd")
 
     def crop(self, frame_rgb: np.ndarray, size: int = 224) -> Optional[np.ndarray]:
+        out = self.crop_with_pose(frame_rgb, size)
+        return None if out is None else out[0]
+
+    def crop_with_pose(self, frame_rgb: np.ndarray, size: int = 224) -> Optional[Tuple[np.ndarray, float, float]]:
         h, w = frame_rgb.shape[:2]
         scale = 640.0 / max(h, w) if max(h, w) > 640 else 1.0
         small = cv2.resize(frame_rgb, (int(w * scale), int(h * scale))) if scale < 1 else frame_rgb
@@ -77,7 +104,8 @@ class FaceCropper:
         m = cv2.getRotationMatrix2D((cx, cy), angle, size / side)
         m[0, 2] += size / 2 - cx
         m[1, 2] += size / 2 - cy
-        return cv2.warpAffine(frame_rgb, m, (size, size), flags=cv2.INTER_AREA, borderMode=cv2.BORDER_REFLECT)
+        yaw, pitch = head_pose(lm)
+        return cv2.warpAffine(frame_rgb, m, (size, size), flags=cv2.INTER_AREA, borderMode=cv2.BORDER_REFLECT), yaw, pitch
 
 
 def sample_frames(video_path: str, n: int = 32) -> List[np.ndarray]:
@@ -105,6 +133,9 @@ class FaceResult:
     maps: np.ndarray              # sigmoid maps [10, 224, 224]
     cls: Optional[np.ndarray] = None
     z: Optional[np.ndarray] = None
+    yaw: float = 0.0
+    pitch: float = 0.345
+    reliable: bool = True         # head pose inside the training range (POSE_LIMITS)
 
 
 @dataclass
@@ -117,6 +148,7 @@ class Analysis:
     flicker: Optional[float] = None
     drift: Optional[float] = None
     message: str = ""
+    n_used: int = 0               # faces that entered the verdict (reliable pose)
 
 
 class QuickEngine:
@@ -189,15 +221,26 @@ def analyse(media_path: str, engine, cropper: FaceCropper, is_video: bool, n_fra
     a = Analysis(mode=engine.name)
     frames = sample_frames(media_path, n_frames) if is_video else [cv2.cvtColor(cv2.imread(media_path), cv2.COLOR_BGR2RGB)]
     a.n_frames = len(frames)
-    crops = [c for c in (cropper.crop(f) for f in frames) if c is not None]
+    found = [c for c in (cropper.crop_with_pose(f) for f in frames) if c is not None]
     min_faces = 4 if is_video else 1
-    if len(crops) < min_faces:
-        a.message = (f"Only {len(crops)} of {len(frames)} sampled frames contain a detectable face; "
+    if len(found) < min_faces:
+        a.message = (f"Only {len(found)} of {len(frames)} sampled frames contain a detectable face; "
                      f"need at least {min_faces}. No verdict given." if is_video else "No face found in this image. No verdict given.")
         return a
-    a.faces = engine.run(crops)
-    a.prob = float(np.mean([f.prob for f in a.faces]))
-    a.verdict = band(a.prob)
+    a.faces = engine.run([c for c, _, _ in found])
+    for f, (_, yaw, pitch) in zip(a.faces, found):
+        f.yaw, f.pitch, f.reliable = yaw, pitch, pose_ok(yaw, pitch)
+    used = [f for f in a.faces if f.reliable]
+    a.n_used = len(used)
+    if len(used) >= min_faces:
+        a.prob = float(np.mean([f.prob for f in used]))
+        a.verdict = band(a.prob)
+    else:
+        # too few front-facing faces: report the score of all faces, but do not claim a verdict
+        a.prob = float(np.mean([f.prob for f in a.faces]))
+        a.verdict = "Inconclusive"
+        a.message = (f"Only {len(used)} of {len(a.faces)} faces are front-facing enough for a reliable verdict "
+                     "(the model was trained on near-frontal faces).")
     if is_video:
         a.flicker = temporal_flicker(np.stack([f.concepts for f in a.faces]))
         if a.faces[0].cls is not None:
