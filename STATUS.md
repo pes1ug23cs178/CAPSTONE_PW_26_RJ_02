@@ -3,10 +3,11 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `robustness_eval` (started 08:50, ~15:00). Then **final-model fix** (smoke, F1, F2, pick_final, final seeds 1/2), then students from the final teacher, G2 DCT, G2-fft, G3, A3, robustness, students, explanations, app check, tables; then fillers (see queue.yaml).
+- GPU job: `robustness_eval` (started 08:50, ~15:10). Then **final-model fix** (smoke_f2, F1, F2, pick_final, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
+- Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
-- Extra work queued after the main pipeline (user asked to use spare GPU time): runbook fillers G3 seed 2, S3 seed 2, **D2** (G3 + unsupervised adaptation to 5,978 unlabelled non-test Celeb-DF videos; dataset-level DANN), B1 seed 1; then **X1** (G3 trained on FF++ + DFD, tested on FF++ and Celeb-DF), then a results refresh (eval, tables, summary, release).
+- Extra work queued after the main pipeline (user asked to use spare GPU time): final-teacher seed 2, S3 seed 2, **D2** (final teacher + unsupervised adaptation to 5,978 unlabelled non-test Celeb-DF videos; dataset-level DANN on patch features), B1 seed 1; then **X1** (final teacher trained on FF++ + DFD, tested on FF++ and Celeb-DF), then a results refresh (eval, tables, summary, release).
 
 ## Needs a human
 
