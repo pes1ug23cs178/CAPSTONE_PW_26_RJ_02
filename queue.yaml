@@ -122,6 +122,8 @@ jobs:
     cmd: python scripts/run_snapshot.py -- python scripts/make_release.py
     after: make_tables
   # ---- optional fillers (runbook order), then the extra FF++ + DFD experiment, then refresh results ----
+  - name: g3_dann003_s42
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/g3_dann003.yaml --seed 42
   - name: g3_full_s2
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/g3_full.yaml --seed 2
     after: g3_full_s42
