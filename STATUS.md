@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `robustness_eval` (started 08:50, ~15:10). Then **final-model fix** (smoke_f2, F1, F2, pick_final, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
+- GPU job: `f1_grace_dct_s42` (started 15:23, ~2.5 h). Then F2, pick_final, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -124,3 +124,5 @@ See `splits/counts.md` for the full table.
 - 2026-11-18 07:00 G3 done: DFD 0.959, Celeb-DF 0.911; gate/residual collapse under DANN (finding); g3_dann003 diagnostic queued as filler.
 - 2026-11-18 08:51 A3 done (collapsed after epoch 3; best = epoch 3); a3_dann003 diagnostic queued; robustness eval started.
 - 2026-11-18 11:30 Final-model fix implemented (hard-val selection, DANN on patches, F1/F2 candidates, final-teacher wiring); queue rebuilt.
+- 2026-11-18 15:20 Robustness eval done (10 models x 27 conditions, `results/robustness.csv`). smoke_f2 passed: hard-val selection computes clean / h264:40 / SBI-val scores; DANN on patches runs; F1 started.
+- 2026-11-18 15:15 Demo app preview started at http://127.0.0.1:7860 (Deep mode, G3 until the final teacher is chosen): FF++ fake 0.92, FF++ real 0.17, Celeb-DF fake 0.90, no-face photo handled; Quick mode shows 'not available' until the student ONNX exists.
