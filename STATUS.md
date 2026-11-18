@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `sbi_pool` (started 20:49), then teacher cache from **F1 (final teacher)**, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
+- GPU job: `s0_student_s42` (started 20:50), then `teacher_cache_r2` from **F1 (final teacher)**, S2/S3, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -136,3 +136,4 @@ See `splits/counts.md` for the full table.
 - 2026-11-18 17:21 F1 done: FF++ 0.9992, DFD 0.947, Celeb-DF 0.881, concept share 0.83 (pass); F2 started.
 - 2026-11-18 19:22 F2 done: patch features collapsed (concept AUC 0.5; finding); F1 will be the final teacher (val select 0.961 vs 0.817); D2 domain weights 0.1 -> 0.01; robustness of F1/F2 started.
 - 2026-11-18 20:49 Robustness of F1/F2 done (`results/robustness_final_candidates.csv`); pick_final chose F1; sbi_pool started.
+- 2026-11-18 20:50 sbi_pool done (40,000 SBI images; student_train.csv 86,058 rows). teacher_cache failed on a syntax error (a literal newline in an f-string from the final-teacher edit, `scripts/cache_teacher.py:40`); fixed, all .py files compile-checked; re-queued as `teacher_cache_r2` right after S0, and S2/S3 now wait for it. S0 (no teacher) started.

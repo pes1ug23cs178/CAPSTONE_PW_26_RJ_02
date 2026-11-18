@@ -87,12 +87,15 @@ jobs:
   - name: s0_student_s42
     cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s0_student.yaml --seed 42
     after: sbi_pool
+  - name: teacher_cache_r2
+    cmd: python scripts/run_snapshot.py -- python scripts/cache_teacher.py --teacher auto
+    after: pick_final
   - name: s2_kd_logits_s42
     cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s2_kd_logits.yaml --seed 42
-    after: teacher_cache
+    after: teacher_cache_r2
   - name: s3_kd_full_s42
     cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3_kd_full.yaml --seed 42
-    after: teacher_cache
+    after: teacher_cache_r2
   - name: final_s1
     cmd: python scripts/run_snapshot.py -- python scripts/train_final.py --seed 1
     after: pick_final

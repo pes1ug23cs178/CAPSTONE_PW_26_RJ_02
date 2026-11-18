@@ -37,8 +37,7 @@ def pick_teacher() -> Path:
     if final_teacher_name() != "g3_full":
         choice = resolve_runs(["final"], [42])[0]
         with open(REPO_ROOT / "results" / "decisions.md", "a", encoding="utf-8") as f:
-            f.write(f"- {datetime.now():%Y-%m-%d %H:%M} teacher = final teacher {final_teacher_name()}: {choice.name}
-")
+            f.write(f"- {datetime.now():%Y-%m-%d %H:%M} teacher = final teacher {final_teacher_name()}: {choice.name}\n")
         return choice
     g3 = resolve_runs(["g3_full"], [42])[0]
     parent = json.loads(json.dumps(__import__("yaml").safe_load((g3 / "config.yaml").read_text())))["parent"]
