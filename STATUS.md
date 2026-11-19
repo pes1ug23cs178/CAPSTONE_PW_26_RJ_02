@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `x1_ffpp_dfd_s2` (started 21:22, ~2 h), then `d2_unsup_adapt_s1`, `final_eval_all_v4`, `make_tables_v4` (see queue.yaml). All runbook tasks are done; these are extra seeds and refreshes.
+- GPU job: `d2_unsup_adapt_s1` (started 23:20, ~2 h), then `final_eval_all_v4`, `make_tables_v4` (see queue.yaml). All runbook tasks are done; these are extra seeds and refreshes.
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -90,6 +90,7 @@ See `splits/counts.md` for the full table.
 | D2 F1 + unsupervised Celeb-DF adaptation (DANN/MMD 0.01 on patches) `d2_unsup_adapt_s42` | 0.9989 | 0.9488 | 0.8736 | 0.9999 (7; select 0.960) | 1.9 |
 | X1 F1 recipe trained on FF++ + DFD train (DFD test not held out: n/a) `x1_ffpp_dfd_s42` | 0.9971 | n/a | 0.9499 | 0.9994 (8) | 1.9 |
 | X1 seed 1 `x1_ffpp_dfd_s1` | 0.9996 | n/a | 0.9676 | 0.9999 (4) | 1.9 |
+| X1 seed 2 `x1_ffpp_dfd_s2` | 0.9983 | n/a | 0.9580 | 0.9999 (10) | 1.9 |
 | A3 G3 with linear head (epoch-3 checkpoint, collapsed after) `a3_linear_head_s42_20261118-0700` | 0.9981 | 0.9622 | 0.8930 | 0.9995 (3) | 1.8 |
 | F1 seed 1 `f1_grace_dct_s1` | 0.9986 | 0.9500 | 0.9100 | 0.9996 | 1.9 |
 | F1 seed 2 `f1_grace_dct_s2_20261119-0529` | 0.9927 | 0.9546 | 0.9127 | 0.9993 (8) | 1.81 |
@@ -181,3 +182,4 @@ See `splits/counts.md` for the full table.
 - 2026-11-19 19:40 X1 seed 1 done: FF++ 0.9996, **Celeb-DF 0.9676**. X1 over 2 seeds: Celeb-DF 0.959 (0.950, 0.968) vs F1 (FF++ only) 0.901±0.017: the gain from adding DFD training data replicates. Next: final_eval_all_v3, make_tables_v3.
 - 2026-11-19 20:31 final_eval_all_v3 (810 rows) + make_tables_v3 done. Summary now uses seed means: full KD vs S0 on clean cross-dataset 0.826 vs 0.842 (lower), at jpeg:30 0.833 vs 0.827 (slightly higher). Summary seed note fixed in the generator. Queued night fillers: B1 s2, X1 s2, D2 s1, v4 refresh.
 - 2026-11-19 21:22 B1 seed 2 done: FF++ 0.9963 / DFD 0.8805 / Celeb-DF 0.8887 (best epoch 1). **B1 over 3 seeds: FF++ 0.997, DFD 0.903±0.020, Celeb-DF 0.889±0.010 vs F1 0.997 / 0.951±0.004 / 0.901±0.017**: F1 is clearly ahead on DFD (+0.048), level within noise on Celeb-DF. Next: X1 seed 2.
+- 2026-11-19 23:20 X1 seed 2 done: FF++ 0.9983, Celeb-DF 0.9580. **X1 over 3 seeds: Celeb-DF 0.959±0.009 vs F1 (FF++ only) 0.901±0.017** (+0.058). Next: D2 seed 1.
