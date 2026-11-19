@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `s0_student_s1` (started 14:55), then S0 s2, S2 s1/s2, X1 s1, final_eval_all_v3, make_tables_v3; after that D2, B1 seed 1, X1, then a v2 refresh of eval/tables/summary/release; app check, final evaluation of all models, tables, summary, release; agreement, benchmark, calibration, explanations, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
+- GPU job: `s0_student_s2` (started 15:35), then S2 s1/s2, X1 s1, final_eval_all_v3, make_tables_v3; after that D2, B1 seed 1, X1, then a v2 refresh of eval/tables/summary/release; app check, final evaluation of all models, tables, summary, release; agreement, benchmark, calibration, explanations, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -92,6 +92,7 @@ See `splits/counts.md` for the full table.
 | F1 seed 1 `f1_grace_dct_s1` | 0.9986 | 0.9500 | 0.9100 | 0.9996 | 1.9 |
 | F1 seed 2 `f1_grace_dct_s2_20261119-0529` | 0.9927 | 0.9546 | 0.9127 | 0.9993 (8) | 1.81 |
 | S0 student (EfficientNet-B0, SBI, no teacher) `s0_student_s42` | 0.9794 | 0.8363 | 0.7781 | 0.9656 (10) | 0.7 |
+| S0 seed 1 `s0_student_s1` | 0.9836 | 0.8802 | 0.8322 | 0.9621 jpeg:50 (8) | 0.7 |
 | S2 student (logit KD from F1) `s2_kd_logits_s42` | 0.9914 | 0.8686 | 0.8096 | 0.9893 clean / 0.9667 jpeg:50 | 0.7 |
 | **S3** student (full KD: logit + z + concepts + maps) `s3_kd_full_s42` | 0.9851 | 0.8540 | 0.8231 | 0.9807 clean / 0.9425 jpeg:50 | 0.7 |
 | S3 seed 1 `s3_kd_full_s1` | 0.9773 | 0.8477 | 0.7786 | | 0.7 |
@@ -168,3 +169,4 @@ See `splits/counts.md` for the full table.
 - 2026-11-19 10:56 B1 seed 1 done: FF++ 0.9997 / DFD 0.9180 / Celeb-DF 0.8783 (best epoch 2). B1 over 2 seeds: DFD 0.914, Celeb-DF 0.889; F1 (3 seeds) stays ahead on DFD (0.951) and Celeb-DF (0.901). Next: X1 (FF++ + DFD training).
 - 2026-11-19 12:50 X1 done (F1 recipe, training data FF++ + DFD): FF++ 0.9971, **Celeb-DF 0.9499** vs F1 0.901±0.017 trained on FF++ only (+0.049, ~3 std). Adding a second source of real/fake data helps cross-dataset generalisation far more than unsupervised target adaptation (D2: 0.874). DFD test not reported (same source as training). Concept share 0.85. Next: final_eval_all_v2 then make_tables_v2.
 - 2026-11-19 14:55 final_eval_all_v2 (690 rows, now 3 seeds for F1/S3, 2 for B1, plus D2) and make_tables_v2 (tables, summary, release) done. Seed-averaged cross-dataset means moved slightly: B1 0.905 -> 0.901, F1 0.922 -> 0.926; S3 vs S0 at jpeg:30 0.833 vs 0.808. Queued Day-6 fillers: S0/S2 seeds 1-2, X1 seed 1, v3 refresh.
+- 2026-11-19 15:35 S0 seed 1 done: FF++ 0.9836 / DFD 0.8802 / Celeb-DF 0.8322, **above the S3 3-seed mean (0.844 / 0.808)**. S0 seed variance is large (seed 42: 0.836 / 0.778); the KD benefit on clean cross-dataset AUC is not established. Waiting for S0 seed 2 before concluding.
