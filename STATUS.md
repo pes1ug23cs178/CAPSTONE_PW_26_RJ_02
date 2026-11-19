@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `s2_kd_logits_s2` (started 16:59), then X1 s1, final_eval_all_v3, make_tables_v3; after that D2, B1 seed 1, X1, then a v2 refresh of eval/tables/summary/release; app check, final evaluation of all models, tables, summary, release; agreement, benchmark, calibration, explanations, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
+- GPU job: `s2_kd_logits_s2` (S2 seed 2, started 16:59), then `x1_ffpp_dfd_s1`, `final_eval_all_v3`, `make_tables_v3` (see queue.yaml). All runbook tasks are done; these are extra seeds and refreshes.
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
