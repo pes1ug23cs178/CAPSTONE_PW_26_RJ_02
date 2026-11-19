@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `b1_swin_s1` (B1 seed 1, started 10:06), then D2, B1 seed 1, X1, then a v2 refresh of eval/tables/summary/release; app check, final evaluation of all models, tables, summary, release; agreement, benchmark, calibration, explanations, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
+- GPU job: `x1_ffpp_dfd_s42` (X1, started 10:56), then D2, B1 seed 1, X1, then a v2 refresh of eval/tables/summary/release; app check, final evaluation of all models, tables, summary, release; agreement, benchmark, calibration, explanations, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -73,6 +73,7 @@ See `splits/counts.md` for the full table.
 | Run | FF++ test | DFD | Celeb-DF (interim) | Val video AUC (best epoch) | GPU h |
 | --- | --- | --- | --- | --- | --- |
 | B1 Swin-B `b1_swin_s42_20261117-1307` | 0.9948 | 0.9104 | 0.8992 | 0.9942 (8) | 0.78 |
+| B1 seed 1 `b1_swin_s1` | 0.9997 | 0.9180 | 0.8783 | 0.9979 (2) | 0.8 |
 | C1 CLIP + LoRA `c1_clip_lora_s42_20261117-1530` | 0.9996 | 0.9425 | 0.9362 | 1.0000 (3) | 1.68 |
 | C2 CLIP + LoRA + SBI 1/3 `c2_clip_sbi_s42_20261117-1711` | 0.9990 | 0.9573 | 0.9057 | 1.0000 (3) | 1.55 |
 | B2 Swin-B + DANN (spec: domain CE on all) `b2_swin_dann_s42_20261117-1850` | 0.9947 | 0.8703 | 0.8702 | 0.9994 (9) | 0.88 |
@@ -163,3 +164,4 @@ See `splits/counts.md` for the full table.
 - 2026-11-19 07:25 F1 seed 2 done: test video AUC FF++ 0.9927 / DFD 0.9546 / Celeb-DF 0.9127 (best epoch 8, concept share 0.84). **F1 over 3 seeds: FF++ 0.997±0.004, DFD 0.951±0.004, Celeb-DF 0.901±0.017.** Concept AUC on SBI-test matches seeds 42/1 (c10 still ~0.50). Next: S3 seed 2.
 - 2026-11-19 08:08 S3 seed 2 done: FF++ 0.9721 / DFD 0.8291 / Celeb-DF 0.8218. **S3 over 3 seeds: FF++ 0.978±0.007, DFD 0.844±0.013, Celeb-DF 0.808±0.025** (S0 single seed 0.979/0.836/0.778: KD gains are small and within ~1-2 std on DFD/Celeb-DF). Next: D2 (domain weights 0.01; watch concept share for collapse).
 - 2026-11-19 10:06 D2 done: FF++ 0.9989 / DFD 0.9488 / Celeb-DF 0.8736; concept share 0.75-0.95, concept AUCs on SBI-test match F1 (c1 0.98, c6-c8 0.99): **no collapse at weight 0.01** (F2 at 0.1 collapsed). But unsupervised adaptation to Celeb-DF did **not** help Celeb-DF: 0.874 vs F1 0.901±0.017 over 3 seeds (about 1.6 std lower). Reported as a negative result; F1 stays final. Next: B1 seed 1.
+- 2026-11-19 10:56 B1 seed 1 done: FF++ 0.9997 / DFD 0.9180 / Celeb-DF 0.8783 (best epoch 2). B1 over 2 seeds: DFD 0.914, Celeb-DF 0.889; F1 (3 seeds) stays ahead on DFD (0.951) and Celeb-DF (0.901). Next: X1 (FF++ + DFD training).
