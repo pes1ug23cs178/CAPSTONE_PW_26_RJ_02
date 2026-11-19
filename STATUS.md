@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `eval_x1_robustness` (started 02:28), then `d2_unsup_adapt_s2` (see queue.yaml). All runbook tasks are done; these are extra seeds and evaluations.
+- GPU job: `d2_unsup_adapt_s2` (started 03:24, ~2 h); queue then empty. All runbook tasks are done; these are extra seeds and evaluations.
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -186,3 +186,4 @@ See `splits/counts.md` for the full table.
 - 2026-11-19 23:20 X1 seed 2 done: FF++ 0.9983, Celeb-DF 0.9580. **X1 over 3 seeds: Celeb-DF 0.958±0.009 vs F1 (FF++ only) 0.901±0.017** (+0.057). Next: D2 seed 1.
 - 2026-11-20 01:18 D2 seed 1 done: FF++ 0.9995 / DFD 0.9532 / Celeb-DF 0.8751; no collapse (SBI-test concept AUCs match F1). **D2 over 2 seeds: Celeb-DF 0.874 (0.874, 0.875) vs F1 0.901±0.017**: the negative result replicates; unsupervised Celeb-DF adaptation costs about 0.03 on Celeb-DF. Next: final_eval_all_v4, make_tables_v4.
 - 2026-11-20 02:28 final_eval_all_v4 (870 rows; B1 now 3 seeds, D2 2) and make_tables_v4 (tables, summary, release) done. Summary: B1 3-seed cross-dataset mean at jpeg:30 is 0.817 (S3 0.833). Next: X1 robustness on FF++/Celeb-DF, then D2 seed 2.
+- 2026-11-20 03:24 X1 robustness (`results/robustness_x1.csv`, 3 seeds, FF++/Celeb-DF only). Celeb-DF video AUC X1 vs F1 (3-seed means): clean 0.959/0.901, jpeg:30 0.951/0.910, down:0.25 0.953/0.920, h264:28 0.928/0.901, h264:34 0.850/0.826, h264:40 0.675/0.639. X1 leads at every degradation; strong H.264 (crf 40) still hurts both about equally (-0.26 to -0.28). Next: D2 seed 2.
