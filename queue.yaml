@@ -171,3 +171,25 @@ jobs:
   - name: make_tables_v2
     cmd: python scripts/run_snapshot.py -- "python scripts/make_tables.py && python scripts/make_summary.py && python scripts/make_release.py"
     after: final_eval_all_v2
+  # Day 6 fillers (added 19 Nov 12:55): extra student seeds so S0 vs S2 vs S3 compare over 3 seeds each, X1 seed 1, then a v3 refresh.
+  - name: s0_student_s1
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s0_student.yaml --seed 1
+    after: make_tables_v2
+  - name: s0_student_s2
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s0_student.yaml --seed 2
+    after: s0_student_s1
+  - name: s2_kd_logits_s1
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s2_kd_logits.yaml --seed 1
+    after: s0_student_s2
+  - name: s2_kd_logits_s2
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s2_kd_logits.yaml --seed 2
+    after: s2_kd_logits_s1
+  - name: x1_ffpp_dfd_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/x1_ffpp_dfd.yaml --seed 1
+    after: s2_kd_logits_s2
+  - name: final_eval_all_v3
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin b2_swin_dann b2f_swin_dann_fake c1_clip_lora c2_clip_sbi g1_concepts g1r_concepts_res1e2 c2q_clip_sbi_quarter g2_dct g2_fft g3_full a3_linear_head f1_grace_dct f2_grace_pdann s0_student s2_kd_logits s3_kd_full d2_unsup_adapt --seeds 42 1 2
+    after: x1_ffpp_dfd_s1
+  - name: make_tables_v3
+    cmd: python scripts/run_snapshot.py -- "python scripts/make_tables.py && python scripts/make_summary.py && python scripts/make_release.py"
+    after: final_eval_all_v3
