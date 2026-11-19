@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `s2_kd_logits_s2` (S2 seed 2, started 16:59), then `x1_ffpp_dfd_s1`, `final_eval_all_v3`, `make_tables_v3` (see queue.yaml). All runbook tasks are done; these are extra seeds and refreshes.
+- GPU job: `x1_ffpp_dfd_s1` (X1 seed 1, started 17:44, ~2 h), then `final_eval_all_v3`, `make_tables_v3` (see queue.yaml). All runbook tasks are done; these are extra seeds and refreshes.
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -96,6 +96,7 @@ See `splits/counts.md` for the full table.
 | S0 seed 2 `s0_student_s2` | 0.9884 | 0.8847 | 0.8408 | 0.9727 jpeg:50 (6) | 0.7 |
 | S2 student (logit KD from F1) `s2_kd_logits_s42` | 0.9914 | 0.8686 | 0.8096 | 0.9893 clean / 0.9667 jpeg:50 | 0.7 |
 | S2 seed 1 `s2_kd_logits_s1` | 0.9839 | 0.8486 | 0.8010 | 0.9710 jpeg:50 (9) | 0.7 |
+| S2 seed 2 `s2_kd_logits_s2` | 0.9765 | 0.8589 | 0.7987 | 0.9416 jpeg:50 (10) | 0.7 |
 | **S3** student (full KD: logit + z + concepts + maps) `s3_kd_full_s42` | 0.9851 | 0.8540 | 0.8231 | 0.9807 clean / 0.9425 jpeg:50 | 0.7 |
 | S3 seed 1 `s3_kd_full_s1` | 0.9773 | 0.8477 | 0.7786 | | 0.7 |
 | S3 seed 2 `s3_kd_full_s2` | 0.9721 | 0.8291 | 0.8218 | 0.9522 jpeg:50 (9) | 0.7 |
@@ -174,3 +175,4 @@ See `splits/counts.md` for the full table.
 - 2026-11-19 15:35 S0 seed 1 done: FF++ 0.9836 / DFD 0.8802 / Celeb-DF 0.8322, **above the S3 3-seed mean (0.844 / 0.808)**. S0 seed variance is large (seed 42: 0.836 / 0.778); the KD benefit on clean cross-dataset AUC is not established. Waiting for S0 seed 2 before concluding.
 - 2026-11-19 16:14 S0 seed 2 done: FF++ 0.9884 / DFD 0.8847 / Celeb-DF 0.8408. **S0 over 3 seeds: FF++ 0.984±0.005, DFD 0.867±0.027, Celeb-DF 0.817±0.034 vs S3 0.978±0.007 / 0.844±0.013 / 0.808±0.025.** Corrects the earlier single-seed finding: full KD does **not** improve clean cross-dataset AUC over the no-teacher student (S0 is slightly higher, within seed noise). What KD does transfer: concept usage (S3 concept share ~0.5 vs S0 0.25-0.43 on DFD/Celeb-DF), concept/map agreement with the teacher (Spearman 0.79 vs 0.64) and pointing game (0.73). Report KD as transferring the explanation, not accuracy. v3 refresh will recompute summary findings with seed means.
 - 2026-11-19 16:59 S2 seed 1 done: FF++ 0.9839 / DFD 0.8486 / Celeb-DF 0.8010 (seed 42: 0.869 / 0.810). Same range as S3 and S0. Next: S2 seed 2.
+- 2026-11-19 17:44 S2 seed 2 done: FF++ 0.9765 / DFD 0.8589 / Celeb-DF 0.7987. **Students over 3 seeds (FF++ / DFD / Celeb-DF): S0 0.984 / 0.867±0.027 / 0.817±0.034; S2 0.984 / 0.859±0.010 / 0.803±0.006; S3 0.978 / 0.844±0.013 / 0.808±0.025.** All three within seed noise of each other on clean AUC; KD lowers seed variance (S2/S3 std about half of S0's) and transfers concept use and explanation agreement, not accuracy. Next: X1 seed 1.
