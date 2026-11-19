@@ -209,3 +209,10 @@ jobs:
   - name: make_tables_v4
     cmd: python scripts/run_snapshot.py -- "python scripts/make_tables.py && python scripts/make_summary.py && python scripts/make_release.py"
     after: final_eval_all_v4
+  # Day 7 fillers (added 20 Nov 01:20): X1 robustness on its held-out sets only (DFD is in its training data), D2 seed 2.
+  - name: eval_x1_robustness
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models x1_ffpp_dfd --seeds 42 1 2 --splits ffpp_test celebdf_test --out results/robustness_x1.csv
+    after: make_tables_v4
+  - name: d2_unsup_adapt_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/d2_unsup_adapt.yaml --seed 2
+    after: eval_x1_robustness
