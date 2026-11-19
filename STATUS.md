@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `d2_unsup_adapt_s1` (started 23:20, ~2 h), then `final_eval_all_v4`, `make_tables_v4` (see queue.yaml). All runbook tasks are done; these are extra seeds and refreshes.
+- GPU job: `final_eval_all_v4` (started 01:18), then `make_tables_v4` (see queue.yaml). All runbook tasks are done; these are extra seeds and refreshes.
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -88,6 +88,7 @@ See `splits/counts.md` for the full table.
 | **F1** G2-DCT + residual 1e-2 + hard-val selection `f1_grace_dct_s42_20261118-1523` | 0.9992 | 0.9473 | 0.8814 | 0.9991 (8; select 0.961) | 1.85 |
 | F2 F1 + DANN/MMD 0.1 on patches (patch features collapsed) `f2_grace_pdann_s42_20261118-1721` | 0.9619 | 0.8127 | 0.7150 | 0.9851 (10; select 0.817) | 1.9 |
 | D2 F1 + unsupervised Celeb-DF adaptation (DANN/MMD 0.01 on patches) `d2_unsup_adapt_s42` | 0.9989 | 0.9488 | 0.8736 | 0.9999 (7; select 0.960) | 1.9 |
+| D2 seed 1 `d2_unsup_adapt_s1` | 0.9995 | 0.9532 | 0.8751 | 0.9999 (6) | 1.9 |
 | X1 F1 recipe trained on FF++ + DFD train (DFD test not held out: n/a) `x1_ffpp_dfd_s42` | 0.9971 | n/a | 0.9499 | 0.9994 (8) | 1.9 |
 | X1 seed 1 `x1_ffpp_dfd_s1` | 0.9996 | n/a | 0.9676 | 0.9999 (4) | 1.9 |
 | X1 seed 2 `x1_ffpp_dfd_s2` | 0.9983 | n/a | 0.9580 | 0.9999 (10) | 1.9 |
@@ -183,3 +184,4 @@ See `splits/counts.md` for the full table.
 - 2026-11-19 20:31 final_eval_all_v3 (810 rows) + make_tables_v3 done. Summary now uses seed means: full KD vs S0 on clean cross-dataset 0.826 vs 0.842 (lower), at jpeg:30 0.833 vs 0.827 (slightly higher). Summary seed note fixed in the generator. Queued night fillers: B1 s2, X1 s2, D2 s1, v4 refresh.
 - 2026-11-19 21:22 B1 seed 2 done: FF++ 0.9963 / DFD 0.8805 / Celeb-DF 0.8887 (best epoch 1). **B1 over 3 seeds: FF++ 0.997, DFD 0.903±0.020, Celeb-DF 0.889±0.010 vs F1 0.997 / 0.951±0.004 / 0.901±0.017**: F1 is clearly ahead on DFD (+0.048), level within noise on Celeb-DF. Next: X1 seed 2.
 - 2026-11-19 23:20 X1 seed 2 done: FF++ 0.9983, Celeb-DF 0.9580. **X1 over 3 seeds: Celeb-DF 0.958±0.009 vs F1 (FF++ only) 0.901±0.017** (+0.057). Next: D2 seed 1.
+- 2026-11-20 01:18 D2 seed 1 done: FF++ 0.9995 / DFD 0.9532 / Celeb-DF 0.8751; no collapse (SBI-test concept AUCs match F1). **D2 over 2 seeds: Celeb-DF 0.874 (0.874, 0.875) vs F1 0.901±0.017**: the negative result replicates; unsupervised Celeb-DF adaptation costs about 0.03 on Celeb-DF. Next: final_eval_all_v4, make_tables_v4.
