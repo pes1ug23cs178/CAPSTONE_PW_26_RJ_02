@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `x1_ffpp_dfd_s42` (X1, started 10:56), then D2, B1 seed 1, X1, then a v2 refresh of eval/tables/summary/release; app check, final evaluation of all models, tables, summary, release; agreement, benchmark, calibration, explanations, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
+- GPU job: `final_eval_all_v2` (started 12:50), then make_tables_v2 (tables, summary, release refresh); after that D2, B1 seed 1, X1, then a v2 refresh of eval/tables/summary/release; app check, final evaluation of all models, tables, summary, release; agreement, benchmark, calibration, explanations, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -87,6 +87,7 @@ See `splits/counts.md` for the full table.
 | **F1** G2-DCT + residual 1e-2 + hard-val selection `f1_grace_dct_s42_20261118-1523` | 0.9992 | 0.9473 | 0.8814 | 0.9991 (8; select 0.961) | 1.85 |
 | F2 F1 + DANN/MMD 0.1 on patches (patch features collapsed) `f2_grace_pdann_s42_20261118-1721` | 0.9619 | 0.8127 | 0.7150 | 0.9851 (10; select 0.817) | 1.9 |
 | D2 F1 + unsupervised Celeb-DF adaptation (DANN/MMD 0.01 on patches) `d2_unsup_adapt_s42` | 0.9989 | 0.9488 | 0.8736 | 0.9999 (7; select 0.960) | 1.9 |
+| X1 F1 recipe trained on FF++ + DFD train (DFD test not held out: n/a) `x1_ffpp_dfd_s42` | 0.9971 | n/a | 0.9499 | 0.9994 (8) | 1.9 |
 | A3 G3 with linear head (epoch-3 checkpoint, collapsed after) `a3_linear_head_s42_20261118-0700` | 0.9981 | 0.9622 | 0.8930 | 0.9995 (3) | 1.8 |
 | F1 seed 1 `f1_grace_dct_s1` | 0.9986 | 0.9500 | 0.9100 | 0.9996 | 1.9 |
 | F1 seed 2 `f1_grace_dct_s2_20261119-0529` | 0.9927 | 0.9546 | 0.9127 | 0.9993 (8) | 1.81 |
@@ -165,3 +166,4 @@ See `splits/counts.md` for the full table.
 - 2026-11-19 08:08 S3 seed 2 done: FF++ 0.9721 / DFD 0.8291 / Celeb-DF 0.8218. **S3 over 3 seeds: FF++ 0.978±0.007, DFD 0.844±0.013, Celeb-DF 0.808±0.025** (S0 single seed 0.979/0.836/0.778: KD gains are small and within ~1-2 std on DFD/Celeb-DF). Next: D2 (domain weights 0.01; watch concept share for collapse).
 - 2026-11-19 10:06 D2 done: FF++ 0.9989 / DFD 0.9488 / Celeb-DF 0.8736; concept share 0.75-0.95, concept AUCs on SBI-test match F1 (c1 0.98, c6-c8 0.99): **no collapse at weight 0.01** (F2 at 0.1 collapsed). But unsupervised adaptation to Celeb-DF did **not** help Celeb-DF: 0.874 vs F1 0.901±0.017 over 3 seeds (about 1.6 std lower). Reported as a negative result; F1 stays final. Next: B1 seed 1.
 - 2026-11-19 10:56 B1 seed 1 done: FF++ 0.9997 / DFD 0.9180 / Celeb-DF 0.8783 (best epoch 2). B1 over 2 seeds: DFD 0.914, Celeb-DF 0.889; F1 (3 seeds) stays ahead on DFD (0.951) and Celeb-DF (0.901). Next: X1 (FF++ + DFD training).
+- 2026-11-19 12:50 X1 done (F1 recipe, training data FF++ + DFD): FF++ 0.9971, **Celeb-DF 0.9499** vs F1 0.901±0.017 trained on FF++ only (+0.049, ~3 std). Adding a second source of real/fake data helps cross-dataset generalisation far more than unsupervised target adaptation (D2: 0.874). DFD test not reported (same source as training). Concept share 0.85. Next: final_eval_all_v2 then make_tables_v2.
