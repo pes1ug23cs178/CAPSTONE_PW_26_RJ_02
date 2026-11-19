@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `final_eval_all_v3` (started 19:40), then `make_tables_v3` (see queue.yaml). All runbook tasks are done; these are extra seeds and refreshes.
+- GPU job: `b1_swin_s2` (started 20:31), then `x1_ffpp_dfd_s2`, `d2_unsup_adapt_s1`, `final_eval_all_v4`, `make_tables_v4` (see queue.yaml). All runbook tasks are done; these are extra seeds and refreshes.
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -178,3 +178,4 @@ See `splits/counts.md` for the full table.
 - 2026-11-19 16:59 S2 seed 1 done: FF++ 0.9839 / DFD 0.8486 / Celeb-DF 0.8010 (seed 42: 0.869 / 0.810). Same range as S3 and S0. Next: S2 seed 2.
 - 2026-11-19 17:44 S2 seed 2 done: FF++ 0.9765 / DFD 0.8589 / Celeb-DF 0.7987. **Students over 3 seeds (FF++ / DFD / Celeb-DF): S0 0.984 / 0.867±0.027 / 0.817±0.034; S2 0.984 / 0.859±0.010 / 0.803±0.006; S3 0.978 / 0.844±0.013 / 0.808±0.025.** All three within seed noise of each other on clean AUC; KD lowers seed variance (S2/S3 std about half of S0's) and transfers concept use and explanation agreement, not accuracy. Next: X1 seed 1.
 - 2026-11-19 19:40 X1 seed 1 done: FF++ 0.9996, **Celeb-DF 0.9676**. X1 over 2 seeds: Celeb-DF 0.959 (0.950, 0.968) vs F1 (FF++ only) 0.901±0.017: the gain from adding DFD training data replicates. Next: final_eval_all_v3, make_tables_v3.
+- 2026-11-19 20:31 final_eval_all_v3 (810 rows) + make_tables_v3 done. Summary now uses seed means: full KD vs S0 on clean cross-dataset 0.826 vs 0.842 (lower), at jpeg:30 0.833 vs 0.827 (slightly higher). Summary seed note fixed in the generator. Queued night fillers: B1 s2, X1 s2, D2 s1, v4 refresh.
