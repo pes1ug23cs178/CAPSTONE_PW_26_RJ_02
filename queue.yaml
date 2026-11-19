@@ -216,3 +216,9 @@ jobs:
   - name: d2_unsup_adapt_s2
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/d2_unsup_adapt.yaml --seed 2
     after: eval_x1_robustness
+  - name: final_eval_all_v5
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin b2_swin_dann b2f_swin_dann_fake c1_clip_lora c2_clip_sbi g1_concepts g1r_concepts_res1e2 c2q_clip_sbi_quarter g2_dct g2_fft g3_full a3_linear_head f1_grace_dct f2_grace_pdann s0_student s2_kd_logits s3_kd_full d2_unsup_adapt --seeds 42 1 2
+    after: d2_unsup_adapt_s2
+  - name: make_tables_v5
+    cmd: python scripts/run_snapshot.py -- "python scripts/make_tables.py && python scripts/make_summary.py && python scripts/make_release.py"
+    after: final_eval_all_v5
