@@ -43,8 +43,8 @@ def main() -> None:
              "- Unseen tests: DeepFakeDetection (DFD) and Celeb-DF v2; FF++ test for in-domain. " + mode.replace("**", "") + ".",
              "- Metric: video AUC (mean fake probability over a video's crops); thresholds from FF++ validation only.",
              "- Models: Swin-B baseline (B1, B2 + DANN), CLIP ViT-L/14 + LoRA (C1), + self-blended images (C2), + concept bottleneck (G1), "
-             "+ frequency branch with gated fusion (G2 DCT / G2-fft), + DANN (G3 teacher); EfficientNet-B0 students S0/S2/S3.",
-             "- Hardware: one RTX 4500 Ada (24 GB); one seed per model except G3 and S3 (seeds 42 and 1) where time allowed.", "",
+             "+ frequency branch with gated fusion (G2 DCT / G2-fft), + DANN (G3); final teacher chosen on FF++ val between F1 (G2-DCT + residual 1e-2 + harder val selection) and F2 (F1 + DANN on patch features); EfficientNet-B0 students S0/S2/S3 distilled from the final teacher.",
+             "- Hardware: one RTX 4500 Ada (24 GB); one seed per model except the final teacher and S3 (seeds 42 and 1, seed 2 where time allowed).", "",
              "## Findings", ""]
     for a, b, what in [("b1_swin", "c1_clip_lora", "Replacing Swin-B with CLIP + LoRA"),
                        ("c1_clip_lora", "c2_clip_sbi", "Adding self-blended images"),
@@ -62,9 +62,6 @@ def main() -> None:
             s = compare(a, b, what)
             if s:
                 lines.append(s)
-    g3p = REPO_ROOT / "results" / "decisions.md"
-    if g3p.exists():
-        lines += ["", "Decisions taken by the runbook rules:", "", g3p.read_text().strip()]
     for a, b in (("s0_student", "s3_kd_full"), ("b1_swin", "s3_kd_full")):
         if have(a) and have(b):
             s = compare(a, b, "Under JPEG quality 30,", degrade="jpeg:30")
@@ -85,12 +82,24 @@ def main() -> None:
         pg = d[d.metric == "pointing_game"].set_index("method")["value"]
         if len(pg):
             lines.append("- Pointing game on held-out SBI blends: " + ", ".join(f"{k} {v:.2f}" for k, v in pg.items()) + ".")
+    g3p = REPO_ROOT / "results" / "decisions.md"
+    if g3p.exists():
+        seen, dec = set(), []
+        for ln in g3p.read_text(encoding="utf-8").strip().splitlines():
+            key = ln.split(" ", 3)[-1]  # drop the timestamp so repeated decisions (re-runs) appear once
+            if key not in seen:
+                seen.add(key)
+                dec.append(ln)
+        lines += ["", "Decisions taken by the runbook rules:", ""] + dec
     lines += ["", "## What did not work", "", "(Fill in from the negative deltas above and `results/decisions.md`.)", "",
               "## Limitations", "",
               "- Reduced FF++: c23 only; FaceSwap 39 and Face2Face 134 videos have crops; no NeuralTextures or FaceShifter.",
               "- Two cross-dataset sets; " + ("Celeb-DF uses an interim test list (same composition as the official one)." if "interim" in mode else "Celeb-DF uses the official test list."),
               "- Faces only, no audio; one or two seeds per model.",
-              "- The app's face crops use SFD + eye alignment (margin 1.02x), not the original preprocessing code.", "",
+              "- The app's face crops use SFD + eye alignment (margin 1.02x), not the original preprocessing code.",
+              "- Head pose: FF++ is near-frontal; faces beyond its pose range (|yaw| > 0.57) are excluded from the app verdict.",
+              "- The student is less reliable than the teacher on re-cropped and on hard real Celeb-DF faces; the app defaults to the teacher (Deep).",
+              "- Explanations localise well (pointing game) but deletion tests do not show that removing the highlighted region flips the decision; distillation transfers concept scores better than map locations.", "",
               "## Next steps toward a paper", "",
               "- Full FF++ (all methods, c23 + c40), more unseen sets (DFDC-P, DF40), three seeds for every model, a user study of the explanations."]
     out = REPO_ROOT / "results" / "summary.md"
