@@ -193,3 +193,19 @@ jobs:
   - name: make_tables_v3
     cmd: python scripts/run_snapshot.py -- "python scripts/make_tables.py && python scripts/make_summary.py && python scripts/make_release.py"
     after: final_eval_all_v3
+  # Day 6 night fillers (added 19 Nov 19:45): last missing seeds (B1 s2, X1 s2, D2 s1), then a v4 refresh.
+  - name: b1_swin_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/b1_swin.yaml --seed 2
+    after: make_tables_v3
+  - name: x1_ffpp_dfd_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/x1_ffpp_dfd.yaml --seed 2
+    after: b1_swin_s2
+  - name: d2_unsup_adapt_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/d2_unsup_adapt.yaml --seed 1
+    after: x1_ffpp_dfd_s2
+  - name: final_eval_all_v4
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin b2_swin_dann b2f_swin_dann_fake c1_clip_lora c2_clip_sbi g1_concepts g1r_concepts_res1e2 c2q_clip_sbi_quarter g2_dct g2_fft g3_full a3_linear_head f1_grace_dct f2_grace_pdann s0_student s2_kd_logits s3_kd_full d2_unsup_adapt --seeds 42 1 2
+    after: d2_unsup_adapt_s1
+  - name: make_tables_v4
+    cmd: python scripts/run_snapshot.py -- "python scripts/make_tables.py && python scripts/make_summary.py && python scripts/make_release.py"
+    after: final_eval_all_v4
