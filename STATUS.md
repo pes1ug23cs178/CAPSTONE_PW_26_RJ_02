@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `final_eval_all_v5` (started 05:21), then `make_tables_v5`; queue then empty. All runbook tasks are done; these are extra seeds and evaluations.
+- GPU job: `final_eval_all_v5` (started 05:21), then `make_tables_v5`, then the S3x extension: `teacher_cache_x1` and the student distilled from X1 (`s3x_kd_from_x1`, seeds 42/1/2). All runbook tasks are done; these are extra seeds and experiments.
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -189,3 +189,4 @@ See `splits/counts.md` for the full table.
 - 2026-11-20 02:28 final_eval_all_v4 (870 rows; B1 now 3 seeds, D2 2) and make_tables_v4 (tables, summary, release) done. Summary: B1 3-seed cross-dataset mean at jpeg:30 is 0.817 (S3 0.833). Next: X1 robustness on FF++/Celeb-DF, then D2 seed 2.
 - 2026-11-20 03:24 X1 robustness (`results/robustness_x1.csv`, 3 seeds, FF++/Celeb-DF only). Celeb-DF video AUC X1 vs F1 (3-seed means): clean 0.959/0.901, jpeg:30 0.951/0.910, down:0.25 0.953/0.920, h264:28 0.928/0.901, h264:34 0.850/0.826, h264:40 0.675/0.639. X1 leads at every degradation; strong H.264 (crf 40) still hurts both about equally (-0.26 to -0.28). Next: D2 seed 2.
 - 2026-11-20 05:21 D2 seed 2 done: FF++ 0.9979 / DFD 0.9512 / Celeb-DF 0.8637. **D2 over 3 seeds: DFD 0.951±0.002, Celeb-DF 0.871±0.006 vs F1 0.951±0.004 / 0.901±0.017**: same on DFD, about 0.03 lower on Celeb-DF, the target it adapted to. Concept share on Celeb-DF rises to 0.90-0.99 (the head leans on concepts there) without improving AUC. Next: final_eval_all_v5, make_tables_v5.
+- 2026-11-20 05:35 Queued S3x: the S3 recipe (FF++ + SBI student data, full KD) distilled from X1 seed 42 instead of F1, 3 seeds. Question: does X1's Celeb-DF gain (0.958 vs 0.901) reach a student that never sees DFD data? Teacher outputs go to a separate `cache/teacher_x1` (F1 cache untouched); `cache_teacher.py` gained `--out` and run-name `--teacher`. Caveat: DFD test is not fully held out for S3x (its teacher trained on DFD); Celeb-DF is the clean comparison.
