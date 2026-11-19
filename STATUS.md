@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `d2_unsup_adapt_s42` (D2, started 08:08), then D2, B1 seed 1, X1, then a v2 refresh of eval/tables/summary/release; app check, final evaluation of all models, tables, summary, release; agreement, benchmark, calibration, explanations, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
+- GPU job: `b1_swin_s1` (B1 seed 1, started 10:06), then D2, B1 seed 1, X1, then a v2 refresh of eval/tables/summary/release; app check, final evaluation of all models, tables, summary, release; agreement, benchmark, calibration, explanations, final seeds 1/2), then teacher cache + students S0/S2/S3 from the final teacher, ONNX export, benchmark, calibration, explanations, app check, final eval + tables; then fillers (see queue.yaml).
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -85,6 +85,7 @@ See `splits/counts.md` for the full table.
 | **G3** G2-fft + DANN + MMD (fake domains, 0.1) `g3_full_s42_20261118-0506` | 0.9998 | 0.9586 | 0.9110 | 0.9999 (3) | 1.8 |
 | **F1** G2-DCT + residual 1e-2 + hard-val selection `f1_grace_dct_s42_20261118-1523` | 0.9992 | 0.9473 | 0.8814 | 0.9991 (8; select 0.961) | 1.85 |
 | F2 F1 + DANN/MMD 0.1 on patches (patch features collapsed) `f2_grace_pdann_s42_20261118-1721` | 0.9619 | 0.8127 | 0.7150 | 0.9851 (10; select 0.817) | 1.9 |
+| D2 F1 + unsupervised Celeb-DF adaptation (DANN/MMD 0.01 on patches) `d2_unsup_adapt_s42` | 0.9989 | 0.9488 | 0.8736 | 0.9999 (7; select 0.960) | 1.9 |
 | A3 G3 with linear head (epoch-3 checkpoint, collapsed after) `a3_linear_head_s42_20261118-0700` | 0.9981 | 0.9622 | 0.8930 | 0.9995 (3) | 1.8 |
 | F1 seed 1 `f1_grace_dct_s1` | 0.9986 | 0.9500 | 0.9100 | 0.9996 | 1.9 |
 | F1 seed 2 `f1_grace_dct_s2_20261119-0529` | 0.9927 | 0.9546 | 0.9127 | 0.9993 (8) | 1.81 |
@@ -161,3 +162,4 @@ See `splits/counts.md` for the full table.
 - 2026-11-19 05:29 App check r2 (`results/app_check.md`): **Deep (F1) 5/5 correct** (fakes 0.90-0.93, reals 0.13). Quick (S3 ONNX): fakes 3/3 correct, real FF++ 0.53 Inconclusive, **real Celeb-DF id34_0000 0.91 Likely fake**. Checked: not an app bug; S3 scores that video 0.97 on the dataset's own crops too (all 32 frames > 0.5; S0 0.98; F1 0.49 on dataset crops, 0.13 in the app). A hard real video for the students, consistent with their Celeb-DF AUC of about 0.80. No-face image handled. 3-5 s per 32-frame video in both modes. Tables (`results/tables.md`), summary draft (`results/summary.md`) and release package (`release/`: F1 teacher + S3 student checkpoints, ONNX, temperatures, thresholds; not in git) done. Summary generator fixed: setup describes the F1/F2 final-teacher choice, the decisions list is de-duplicated and placed after the findings, limitations add head pose, student reliability and explanation faithfulness.
 - 2026-11-19 07:25 F1 seed 2 done: test video AUC FF++ 0.9927 / DFD 0.9546 / Celeb-DF 0.9127 (best epoch 8, concept share 0.84). **F1 over 3 seeds: FF++ 0.997±0.004, DFD 0.951±0.004, Celeb-DF 0.901±0.017.** Concept AUC on SBI-test matches seeds 42/1 (c10 still ~0.50). Next: S3 seed 2.
 - 2026-11-19 08:08 S3 seed 2 done: FF++ 0.9721 / DFD 0.8291 / Celeb-DF 0.8218. **S3 over 3 seeds: FF++ 0.978±0.007, DFD 0.844±0.013, Celeb-DF 0.808±0.025** (S0 single seed 0.979/0.836/0.778: KD gains are small and within ~1-2 std on DFD/Celeb-DF). Next: D2 (domain weights 0.01; watch concept share for collapse).
+- 2026-11-19 10:06 D2 done: FF++ 0.9989 / DFD 0.9488 / Celeb-DF 0.8736; concept share 0.75-0.95, concept AUCs on SBI-test match F1 (c1 0.98, c6-c8 0.99): **no collapse at weight 0.01** (F2 at 0.1 collapsed). But unsupervised adaptation to Celeb-DF did **not** help Celeb-DF: 0.874 vs F1 0.901±0.017 over 3 seeds (about 1.6 std lower). Reported as a negative result; F1 stays final. Next: B1 seed 1.
