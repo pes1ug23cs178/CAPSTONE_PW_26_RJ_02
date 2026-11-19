@@ -10,20 +10,20 @@
 
 ## Findings
 
-- Replacing Swin-B with CLIP + LoRA raises cross-dataset video AUC (mean of DFD and Celeb-DF): 0.905 → 0.939 (B1 Swin-B → C1 CLIP + LoRA).
+- Replacing Swin-B with CLIP + LoRA raises cross-dataset video AUC (mean of DFD and Celeb-DF): 0.901 → 0.939 (B1 Swin-B → C1 CLIP + LoRA).
 - Adding self-blended images lowers cross-dataset video AUC (mean of DFD and Celeb-DF): 0.939 → 0.931 (C1 CLIP + LoRA → C2 + SBI).
 - The concept bottleneck raises cross-dataset video AUC (mean of DFD and Celeb-DF): 0.931 → 0.941 (C2 + SBI → G1 + concepts).
 - The DCT branch with gated fusion raises cross-dataset video AUC (mean of DFD and Celeb-DF): 0.941 → 0.948 (G1 + concepts → G2 + DCT fusion).
 - The FFT branch with gated fusion lowers cross-dataset video AUC (mean of DFD and Celeb-DF): 0.941 → 0.924 (G1 + concepts → G2-fft + FFT fusion).
-- DANN on Swin-B with real as a domain (runbook spec) lowers cross-dataset video AUC (mean of DFD and Celeb-DF): 0.905 → 0.870 (B1 Swin-B → B2 Swin-B + DANN (real as a domain)).
-- DANN on Swin-B over fake domains only lowers cross-dataset video AUC (mean of DFD and Celeb-DF): 0.905 → 0.898 (B1 Swin-B → B2-fake Swin-B + DANN (fake domains only)).
+- DANN on Swin-B with real as a domain (runbook spec) lowers cross-dataset video AUC (mean of DFD and Celeb-DF): 0.901 → 0.870 (B1 Swin-B → B2 Swin-B + DANN (real as a domain)).
+- DANN on Swin-B over fake domains only leaves essentially unchanged (±0.005) cross-dataset video AUC (mean of DFD and Celeb-DF): 0.901 → 0.898 (B1 Swin-B → B2-fake Swin-B + DANN (fake domains only)).
 - Removing the concept head from G3 (A3) lowers cross-dataset video AUC (mean of DFD and Celeb-DF): 0.935 → 0.928 (G3 full teacher (+ DANN) → A3 G3 w/o concepts).
-- Residual penalty 1e-2 + harder val selection on G2-DCT (F1) lowers cross-dataset video AUC (mean of DFD and Celeb-DF): 0.948 → 0.922 (G2 + DCT fusion → F1 G2-DCT + residual 1e-2 + hard-val selection).
-- DANN/MMD on patch features (F2 vs F1) lowers cross-dataset video AUC (mean of DFD and Celeb-DF): 0.922 → 0.764 (F1 G2-DCT + residual 1e-2 + hard-val selection → F2 F1 + DANN/MMD on patch features).
+- Residual penalty 1e-2 + harder val selection on G2-DCT (F1) lowers cross-dataset video AUC (mean of DFD and Celeb-DF): 0.948 → 0.926 (G2 + DCT fusion → F1 G2-DCT + residual 1e-2 + hard-val selection).
+- DANN/MMD on patch features (F2 vs F1) lowers cross-dataset video AUC (mean of DFD and Celeb-DF): 0.926 → 0.764 (F1 G2-DCT + residual 1e-2 + hard-val selection → F2 F1 + DANN/MMD on patch features).
 - Domain terms on patch features instead of z (F2 vs G3) lowers cross-dataset video AUC (mean of DFD and Celeb-DF): 0.935 → 0.764 (G3 full teacher (+ DANN) → F2 F1 + DANN/MMD on patch features).
 - Full distillation over a teacher-free student raises cross-dataset video AUC (mean of DFD and Celeb-DF): 0.807 → 0.826 (S0 student, no teacher → S3 student, full KD).
-- Under JPEG quality 30, raises cross-dataset video AUC (mean of DFD and Celeb-DF) at jpeg:30: 0.808 → 0.830 (S0 student, no teacher → S3 student, full KD).
-- Under JPEG quality 30, lowers cross-dataset video AUC (mean of DFD and Celeb-DF) at jpeg:30: 0.844 → 0.830 (B1 Swin-B → S3 student, full KD).
+- Under JPEG quality 30, raises cross-dataset video AUC (mean of DFD and Celeb-DF) at jpeg:30: 0.808 → 0.833 (S0 student, no teacher → S3 student, full KD).
+- Under JPEG quality 30, raises cross-dataset video AUC (mean of DFD and Celeb-DF) at jpeg:30: 0.823 → 0.833 (B1 Swin-B → S3 student, full KD).
 - The S3 student has 4.71 M parameters and 0.39 GFLOPs vs 306.94 M and 81.46 GFLOPs for the teacher (f1_grace_dct); ONNX CPU latency 4.2 ms per face.
 - Pointing game on held-out SBI blends: F1 c1 0.52, F1 region 0.94, B1 Grad-CAM 0.15, C1 rollout 0.01, S3 c1 0.72, random 0.25.
 
