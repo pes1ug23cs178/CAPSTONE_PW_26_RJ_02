@@ -222,3 +222,17 @@ jobs:
   - name: make_tables_v5
     cmd: python scripts/run_snapshot.py -- "python scripts/make_tables.py && python scripts/make_summary.py && python scripts/make_release.py"
     after: final_eval_all_v5
+  # Day 7 extension (added 20 Nov 05:30): does the X1 teacher's Celeb-DF gain pass to a student trained on FF++ + SBI only?
+  # Separate cache (cache/teacher_x1) so the F1 cache used by S0-S3, agreement and the app stays untouched.
+  - name: teacher_cache_x1
+    cmd: python scripts/run_snapshot.py -- python scripts/cache_teacher.py --teacher x1_ffpp_dfd_s42_20261119-1056 --out teacher_x1
+    after: make_tables_v5
+  - name: s3x_kd_from_x1_s42
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3x_kd_from_x1.yaml --seed 42
+    after: teacher_cache_x1
+  - name: s3x_kd_from_x1_s1
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3x_kd_from_x1.yaml --seed 1
+    after: s3x_kd_from_x1_s42
+  - name: s3x_kd_from_x1_s2
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3x_kd_from_x1.yaml --seed 2
+    after: s3x_kd_from_x1_s1

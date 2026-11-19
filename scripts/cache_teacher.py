@@ -69,15 +69,21 @@ def run_model(model, ds, device, batch_size=128):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--teacher", default="auto", help="run folder, or auto")
+    ap.add_argument("--teacher", default="auto", help="run folder, run name under runs/, or auto")
+    ap.add_argument("--out", default="teacher", help="output folder under cache_root (default cache/teacher)")
     args = ap.parse_args()
     paths = load_paths()
     cache = paths["cache_root"]
     csv = cache / "sbi_pool" / "student_train.csv"
-    run = pick_teacher() if args.teacher == "auto" else Path(args.teacher)
+    if args.teacher == "auto":
+        run = pick_teacher()
+    else:
+        run = Path(args.teacher)
+        if not run.is_absolute() and not run.exists():
+            run = resolve_runs([args.teacher.rsplit("_s", 1)[0]], [int(args.teacher.rsplit("_s", 1)[1])])[0]                 if "_s" in args.teacher and args.teacher.rsplit("_s", 1)[1].isdigit() else REPO_ROOT / "runs" / args.teacher
     device = torch.device("cuda")
     model, _ = load_model_from_ckpt(str(run / "best.pth"), device)
-    out_dir = cache / "teacher"
+    out_dir = cache / args.out
     out_dir.mkdir(parents=True, exist_ok=True)
     df = pd.read_csv(csv, dtype=str, keep_default_na=False)
     index = []
