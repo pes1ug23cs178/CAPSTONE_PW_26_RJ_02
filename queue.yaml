@@ -259,3 +259,33 @@ jobs:
   - name: s3xx_kd_x1_dfd_s2
     cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3xx_kd_x1_dfd.yaml --seed 2
     after: s0x_student_dfd_s2
+  # Official Celeb-DF test list received 20 Nov (splits/official/List_of_testing_videos.txt; 516 of 518 videos on disk).
+  # Re-split, re-evaluate every model on it, sync experiments.csv, rebuild tables; then retrain D2 (its unlabelled pool
+  # held 462 official test videos) and refresh again.
+  - name: celebdf_official_prepare
+    cmd: python scripts/run_snapshot.py -- python scripts/celebdf_official.py prepare
+    after: s3xx_kd_x1_dfd_s2
+  - name: final_eval_all_v6
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin b2_swin_dann b2f_swin_dann_fake c1_clip_lora c2_clip_sbi g1_concepts g1r_concepts_res1e2 c2q_clip_sbi_quarter g2_dct g2_fft g3_full a3_linear_head f1_grace_dct f2_grace_pdann s0_student s2_kd_logits s3_kd_full d2_unsup_adapt --seeds 42 1 2
+    after: celebdf_official_prepare
+  - name: eval_extras_official
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models x1_ffpp_dfd s3x_kd_from_x1 s0x_student_dfd s3xx_kd_x1_dfd --seeds 42 1 2 --splits ffpp_test celebdf_test --out results/robustness_extra.csv
+    after: final_eval_all_v6
+  - name: make_tables_v6
+    cmd: python scripts/run_snapshot.py -- "python scripts/celebdf_official.py sync && python scripts/make_tables.py && python scripts/make_summary.py && python scripts/fig_explanations.py && python scripts/make_release.py"
+    after: eval_extras_official
+  - name: d2_official_s42
+    cmd: python scripts/run_snapshot.py -- "python scripts/make_adapt_splits.py && python train.py --config configs/d2_unsup_adapt.yaml --seed 42"
+    after: make_tables_v6
+  - name: d2_official_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/d2_unsup_adapt.yaml --seed 1
+    after: d2_official_s42
+  - name: d2_official_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/d2_unsup_adapt.yaml --seed 2
+    after: d2_official_s1
+  - name: final_eval_all_v7
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin b2_swin_dann b2f_swin_dann_fake c1_clip_lora c2_clip_sbi g1_concepts g1r_concepts_res1e2 c2q_clip_sbi_quarter g2_dct g2_fft g3_full a3_linear_head f1_grace_dct f2_grace_pdann s0_student s2_kd_logits s3_kd_full d2_unsup_adapt --seeds 42 1 2
+    after: d2_official_s2
+  - name: make_tables_v7
+    cmd: python scripts/run_snapshot.py -- "python scripts/celebdf_official.py sync && python scripts/make_tables.py && python scripts/make_summary.py && python scripts/make_release.py"
+    after: final_eval_all_v7
