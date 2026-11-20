@@ -149,7 +149,7 @@ def celebdf_split(data_root: Path, official: Path, seed: int = 0) -> (List[Dict]
 def write_csv(path: Path, rows: List[Dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=FIELDS)
+        w = csv.DictWriter(f, fieldnames=FIELDS, lineterminator="\n")  # LF on every OS, so git sees no false changes
         w.writeheader()
         w.writerows(rows)
 
