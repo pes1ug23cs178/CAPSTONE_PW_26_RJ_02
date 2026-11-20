@@ -600,8 +600,10 @@ def launch():
     """Lab: 127.0.0.1 only. Online (GRACE_ONLINE=1): listen on all interfaces, one analysis at a time (CPU host)."""
     demo = build_ui()
     demo.queue(default_concurrency_limit=1, max_size=20)
+    # GRACE_SHARE=1: also open a temporary public https link (*.gradio.live, valid up to 72 h) for laptop demos
+    share = os.environ.get("GRACE_SHARE") == "1"
     demo.launch(server_name="0.0.0.0" if ONLINE else "127.0.0.1", server_port=int(os.environ.get("PORT", 7860)),
-                css=CSS, theme=THEME, js=FORCE_LIGHT_JS, footer_links=[], max_file_size=f"{MAX_MB}mb")
+                css=CSS, theme=THEME, js=FORCE_LIGHT_JS, footer_links=[], max_file_size=f"{MAX_MB}mb", share=share)
 
 
 if __name__ == "__main__":

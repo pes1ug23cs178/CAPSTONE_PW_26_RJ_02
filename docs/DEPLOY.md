@@ -1,12 +1,16 @@
 # Deploying the GRACE app on Hugging Face
 
+> **Status (20 Nov 2026):** the models are on Hugging Face (`grace-cap/grace-deepfake-models`, public). Hosting a
+> Gradio Space now requires a Hugging Face PRO plan, so the live app runs on a team laptop with a public link
+> instead: see **`docs/LAPTOP_DEMO.md`**. The Space steps below still apply if PRO is bought later.
+
 The public app is a **Hugging Face Space** (Gradio, free CPU). It downloads the trained model files from a
 **Hugging Face model repo** when it starts, so the Space itself only holds code.
 
 | Piece | Name | Holds |
 | --- | --- | --- |
 | GitHub | `pes1ug23cs178/CAPSTONE_PW_26_RJ_02` | All code, results, report, slides |
-| Model repo | `<user>/grace-deepfake-models` | Everything in `release/` (about 84 MB) |
+| Model repo | `grace-cap/grace-deepfake-models` (live) | Everything in `release/` (about 84 MB) |
 | Space | `<user>/grace-deepfake-check` | Output of `scripts/build_space.py` |
 
 ## One-time setup (any laptop)

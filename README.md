@@ -159,6 +159,9 @@ python scripts/make_tables.py           # results/tables.md
 
 ## Web app
 
+**Live demo:** runs on a team laptop with a public link (`docs/LAPTOP_DEMO.md`). The trained models are public at
+https://huggingface.co/grace-cap/grace-deepfake-models and download automatically.
+
 ```bash
 python scripts/export_onnx.py && python scripts/calibrate.py && python scripts/make_release.py
 python app/app.py                       # http://127.0.0.1:7860
