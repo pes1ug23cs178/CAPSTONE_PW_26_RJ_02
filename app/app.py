@@ -1,10 +1,15 @@
 """GRACE demo app (T6.4). Run: python app/app.py  ->  http://localhost:7860
 
-Quick mode: S3 student via ONNX Runtime on the CPU. Deep mode: G3 teacher on the GPU.
+Layout "A · Simple answer" (chosen 20 Nov 2026): a plain-language verdict card, the three clues that drove it with
+the face region highlighted, what to do next, and every technical view (probability, timeline, concept maps and
+contributions, switch-off test, nearest training faces, HTML report) inside "Show technical details".
+
+Careful check (Deep): final teacher on the GPU. Quick check: S3 student via ONNX Runtime on the CPU.
 """
 from __future__ import annotations
 
 import base64
+import html as htmllib
 import io
 import json
 import os
@@ -53,15 +58,203 @@ def temperature(run) -> float:
     return json.loads(p.read_text())["temperature"] if p and p.exists() else 1.0
 
 
+CAREFUL, QUICK = "Careful check (recommended)", "Quick check"
+MODE_OF = {CAREFUL: "Deep", QUICK: "Quick", "Deep": "Deep", "Quick": "Quick"}
+
+
 def engine(mode: str):
+    mode = MODE_OF.get(mode, mode)
     if mode not in _engines:
         if mode == "Quick":
             _engines[mode] = QuickEngine(QUICK_ONNX, QUICK_ONNX.with_suffix(".json"), temperature(latest_run("s3_kd_full")))
+            _engines[mode].name = "Quick check (S3 student, ONNX on CPU)"
         else:
             from utils.common import final_teacher_name
-            run = latest_run(final_teacher_name())
+            name = final_teacher_name()
+            run = latest_run(name)
             _engines[mode] = DeepEngine(run, temperature(run))
+            _engines[mode].name = f"Careful check (final teacher {name.split('_')[0].upper()}, GPU)"
     return _engines[mode]
+
+
+# ---------- plain-language layer ----------
+# Concept scores (sigmoid) on FF++ test faces, 20 Nov: reals 0.00-0.07 on every concept, fakes 0.3-0.9 on most.
+STRONG, SOME = 0.6, 0.25
+PLAIN = [  # (title when found, one-line explanation, title when not found)
+    ("The face looks pasted on", "The face seems blended onto the head, like a sticker.", "The face sits naturally on the head"),
+    ("Skin colour does not quite match", "The face is a slightly different tone from the neck and ears.", "Skin colour matches"),
+    ("Part of the face is unusually blurry", "One area is softer than the rest, which editing often leaves behind.", "No unusual blur"),
+    ("Part of the face looks over-sharpened", "Some edges look harsher than a normal camera would make them.", "No harsh sharpening"),
+    ("Signs of resizing", "Parts of the face look stretched or re-drawn.", "No signs of resizing"),
+    ("The mouth area looks edited", "Lips and teeth look different from the rest of the face, a common sign of a swap.", "The mouth looks natural"),
+    ("The eye area looks edited", "Eyes or eyebrows look different from the rest of the face.", "The eyes look natural"),
+    ("The whole face may be replaced", "Clues cover the entire face, not just one part.", "No sign of a full face swap"),
+    ("The face is slightly out of place", "Features do not line up perfectly with the head.", "Features line up with the head"),
+    ("The edge around the face is uneven", "There is a visible seam along the jaw, cheeks or hairline.", "No seam around the face"),
+]
+VERDICT_UI = {  # band -> label, headline template, explanation, colour, tint, icon
+    "Likely fake": ("Likely fake", "This {n} is likely fake",
+                    "We found clear signs that the face in this {n} was edited or swapped onto someone else.",
+                    "#B4410E", "#FCEBDD", "warn"),
+    "Inconclusive": ("Can't tell", "We can't tell for sure",
+                     "Some clues point to editing, others don't. Treat this {n} with care and check where it came from.",
+                     "#4E5560", "#ECEDEF", "question"),
+    "Likely real": ("Looks real", "This {n} looks real",
+                    "We didn't find signs that the face was edited. That is not a guarantee, but it is a good sign.",
+                    "#1F55B8", "#E3ECFA", "check"),
+}
+ICONS = {
+    "warn": '<path d="M12 3l9 16H3z"/><path d="M12 10v4"/><path d="M12 17h.01"/>',
+    "question": '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7"/><path d="M12 17h.01"/>',
+    "check": '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 10"/>',
+}
+FRIENDLY_LIMITS = ("No detector is perfect. GRACE learned from face-swap videos and can be fooled by new editing tools, "
+                   "heavy compression, or faces seen from the side. Use this as one piece of evidence, not the final word.")
+
+
+def icon(name: str, size: int = 18) -> str:
+    return (f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" '
+            f'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{ICONS[name]}</svg>')
+
+
+def glow(face_crop: np.ndarray, m: np.ndarray) -> np.ndarray:
+    """Orange glow where the concept map is high (plain view; the jet overlay stays in the technical view)."""
+    a = (0.65 * np.clip(m, 0, 1))[..., None]
+    orange = np.array([232, 106, 26], np.float32)
+    return (face_crop * (1 - a) + orange * a).astype(np.uint8)
+
+
+def used_faces(a: Analysis):
+    used = [f for f in a.faces if f.reliable]
+    return used or a.faces
+
+
+def message_card(title: str, body: str) -> str:
+    return (f'<div class="g-card g-msg"><h2>{htmllib.escape(title)}</h2>'
+            f'<p>{htmllib.escape(body)}</p></div>')
+
+
+def hero_html(a: Analysis, path: str, is_video: bool) -> str:
+    noun = "video" if is_video else "image"
+    label, head, sub, colour, tint, ic = VERDICT_UI.get(a.verdict, VERDICT_UI["Inconclusive"])
+    faces = used_faces(a)
+    face = max(faces, key=lambda f: f.prob) if a.verdict != "Likely real" else faces[0]
+    pos = min(max(a.prob, 0.03), 0.97) * 100
+    skipped = len(a.faces) - a.n_used
+    if is_video:
+        basis = f"Based on {a.n_used} clear view{'s' if a.n_used != 1 else ''} of the face"
+        basis += (f". {skipped} {'was' if skipped == 1 else 'were'} skipped because the head was turned away." if skipped else ".")
+    else:
+        basis = "Based on the face in this image." if a.n_used else "The face is turned too far for a reliable answer."
+    note = f'<p class="g-note">{htmllib.escape(a.message)}</p>' if a.message else ""
+    return f"""
+<section class="g-card g-hero">
+  <div class="g-hero-media">
+    <img src="data:image/png;base64,{img_to_b64(face.crop)}" alt="Face found in your {noun}">
+    <div class="g-caption">{htmllib.escape(Path(path).name)} · face found in your {noun}</div>
+  </div>
+  <div class="g-hero-text">
+    <div class="g-badge" style="background:{tint};color:{colour}">{icon(ic)}<span>{label}</span></div>
+    <h1>{head.format(n=noun)}</h1>
+    <p class="g-sub">{sub.format(n=noun)}</p>
+    <div class="g-meter-label">How sure are we?</div>
+    <div class="g-meter" role="img" aria-label="Position on the scale from looks real to likely fake: {label}">
+      <div class="g-seg g-seg-real"></div><div class="g-seg g-seg-mid"></div><div class="g-seg g-seg-fake"></div>
+      <div class="g-knob" style="left:{pos:.0f}%"></div>
+    </div>
+    <div class="g-scale"><span>Looks real</span><span>Can't tell</span><span>Likely fake</span></div>
+    <p class="g-basis">{basis}</p>{note}
+  </div>
+</section>"""
+
+
+def reasons_html(a: Analysis) -> str:
+    faces = used_faces(a)
+    score = np.mean([f.concepts for f in faces], axis=0)
+    contrib = np.mean([f.contributions for f in faces], axis=0)
+    found = [k for k in np.argsort(-contrib) if score[k] >= SOME][:3]
+    if a.verdict == "Likely real" or not found:
+        title, picks = "What we checked", [9, 1, 5]
+    else:
+        title = "Why we think so" if a.verdict == "Likely fake" else "What we noticed"
+        normal = [k for k in np.argsort(score) if k not in found]
+        picks = found + normal[:3 - len(found)]
+    cards = []
+    for k in picks:
+        hit = score[k] >= SOME and a.verdict != "Likely real"
+        if hit:
+            best = max(faces, key=lambda f: f.concepts[k])
+            img = glow(best.crop, best.maps[k])
+            strong = score[k] >= STRONG
+            tag = ("Strong clue", "g-tag-strong") if strong else ("Some clue", "g-tag-some")
+            head, body = PLAIN[k][0], PLAIN[k][1]
+        else:
+            img, tag = faces[0].crop, ("Looks normal", "g-tag-ok")
+            head, body = PLAIN[k][2], "We checked this and found nothing unusual."
+        cards.append(f"""<article class="g-card g-reason">
+  <img src="data:image/png;base64,{img_to_b64(img)}" alt="">
+  <span class="g-tag {tag[1]}">{tag[0]}</span>
+  <h3>{head}</h3><p>{body}</p></article>""")
+    hint = '<p class="g-hint">Orange glow = the part of the face where we found the clue.</p>' if a.verdict != "Likely real" else ""
+    return f'<section class="g-reasons"><h2>{title}</h2><div class="g-grid">{"".join(cards)}</div>{hint}</section>'
+
+
+NEXT_STEPS_HTML = """
+<section class="g-card g-next">
+  <h2>What you can do now</h2>
+  <div class="g-steps">
+    <div><span>1</span><p>Check where the file came from. Is the account or website trustworthy?</p></div>
+    <div><span>2</span><p>Look for the same clip from a news outlet or the person's official page.</p></div>
+    <div><span>3</span><p>Don't share it as genuine until you're sure.</p></div>
+  </div>
+</section>"""
+
+HEADER_HTML = """
+<header class="g-header">
+  <div class="g-brand">
+    <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="8" fill="#16181D"/><circle cx="16" cy="14" r="6" fill="none" stroke="#fff" stroke-width="2"/><path d="M9 25c2-3 4.5-4.5 7-4.5s5 1.5 7 4.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+    <div><b>GRACE</b> <span>Deepfake check</span></div>
+  </div>
+  <p>Upload a photo or a short video of a face. We'll tell you, in plain words, whether it looks edited.</p>
+</header>"""
+
+CSS = """
+.gradio-container{max-width:1120px !important;margin:0 auto !important;font-family:Inter,system-ui,sans-serif}
+.g-header{display:flex;flex-direction:column;gap:6px;padding:8px 0 4px}
+.g-brand{display:flex;align-items:center;gap:12px;font-size:22px}
+.g-brand span{color:#545A64;font-weight:500}
+.g-header p{margin:0;font-size:16px;color:#545A64}
+.g-card{background:#fff;color:#16181D;border:1px solid #E2E2DC;border-radius:20px;padding:28px}
+.g-msg h2{margin:0 0 8px;font-size:24px}.g-msg p{margin:0;font-size:16px;color:#3A3F47}
+.g-hero{display:flex;flex-wrap:wrap;gap:32px;align-items:center}
+.g-hero-media{flex:1 1 260px;display:flex;flex-direction:column;gap:10px}
+.g-hero-media img{width:100%;max-width:360px;aspect-ratio:1/1;object-fit:cover;border-radius:16px}
+.g-caption{font-size:14px;color:#545A64;word-break:break-all}
+.g-hero-text{flex:1.4 1 380px;display:flex;flex-direction:column;gap:16px}
+.g-badge{display:inline-flex;align-self:flex-start;align-items:center;gap:8px;font-weight:600;font-size:15px;padding:8px 14px;border-radius:999px}
+.g-hero h1{margin:0;font-size:40px;line-height:1.1;font-weight:700;color:#16181D}
+.g-sub{margin:0;font-size:18px;line-height:1.55;color:#3A3F47}
+.g-meter-label{font-size:14px;font-weight:600;color:#3A3F47}
+.g-meter{position:relative;height:14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:-6px}
+.g-seg-real{background:#C9D8F2;border-radius:999px 0 0 999px}.g-seg-mid{background:#DADCE0}.g-seg-fake{background:#F4C9A9;border-radius:0 999px 999px 0}
+.g-knob{position:absolute;top:-6px;width:26px;height:26px;margin-left:-13px;border-radius:999px;background:#fff;border:3px solid #16181D;box-sizing:border-box}
+.g-scale{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));font-size:13px;color:#545A64;margin-top:-8px}
+.g-scale span:nth-child(2){text-align:center}.g-scale span:nth-child(3){text-align:right}
+.g-basis,.g-note{margin:0;font-size:14px;color:#545A64}.g-note{color:#8A4B12}
+.g-reasons h2,.g-next h2{margin:8px 0 14px;font-size:24px;color:inherit}
+.g-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.g-reason{padding:18px;display:flex;flex-direction:column;gap:12px}
+.g-reason img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px}
+.g-reason h3{margin:0;font-size:18px;line-height:1.35;color:#16181D}.g-reason p{margin:0;font-size:15px;line-height:1.55;color:#3A3F47}
+.g-tag{align-self:flex-start;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px}
+.g-tag-strong{background:#FCEBDD;color:#9A3A0C}.g-tag-some{background:#FDF3E7;color:#8A4B12}.g-tag-ok{background:#E3ECFA;color:#1F55B8}
+.g-hint{font-size:14px;color:#545A64;margin:10px 0 0}
+.g-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.g-steps div{display:flex;gap:12px}.g-steps p{margin:0;font-size:15px;line-height:1.5;color:#16181D}
+.g-steps span{flex:none;width:32px;height:32px;border-radius:999px;background:#E3ECFA;color:#1F55B8;font-weight:600;display:flex;align-items:center;justify-content:center}
+.g-limits{font-size:14px;line-height:1.6;color:#545A64;max-width:760px}
+@media (max-width:640px){.g-hero h1{font-size:30px}.g-card{padding:20px}}
+"""
 
 
 def cropper():
@@ -164,22 +357,32 @@ table{{border-collapse:collapse}} td{{border:1px solid #ccc;padding:4px 8px}}</s
     return str(out)
 
 
+def no_result(title: str, body: str, tech: str = ""):
+    """Outputs when there is no verdict: a friendly message card, everything else empty."""
+    return (message_card(title, body), "", gr.Column(visible=False), gr.DownloadButton(visible=False),
+            tech, None, None, None, None, None, None)
+
+
 def run_analysis(file, mode, concept_name, opacity):
     if file is None:
-        return ("Upload an image or a video first.",) + (None,) * 6
+        return no_result("Choose a file first", "Upload a photo or a short video that shows a face, then press Check.")
     path = file if isinstance(file, str) else file.name
     ext = Path(path).suffix.lower()
     if ext not in VIDEO_EXT | IMAGE_EXT:
-        return (f"Unsupported file type {ext}.",) + (None,) * 6
+        return no_result("We can't read this file type",
+                         f"Please upload a photo (JPG, PNG, WEBP) or a video (MP4, MOV, AVI, MKV, WEBM), not {ext or 'this file'}.")
     if Path(path).stat().st_size > MAX_MB * 1e6:
-        return (f"File is larger than {MAX_MB} MB.",) + (None,) * 6
-    if mode == "Quick" and not QUICK_ONNX.exists():
-        return ("**Quick mode is not available yet**: the compressed student model has not been trained and exported "
-                "(`release/grace_student.onnx`). Choose **Deep**.",) + (None,) * 6
+        return no_result("This file is too large", f"Please upload a file smaller than {MAX_MB} MB, or a shorter clip.")
+    if MODE_OF.get(mode) == "Quick" and not QUICK_ONNX.exists():
+        return no_result("Quick check is not available", "Please use the Careful check instead.")
+    is_video = ext in VIDEO_EXT
     eng = engine(mode)
-    a = analyse(path, eng, cropper(), is_video=ext in VIDEO_EXT)
+    a = analyse(path, eng, cropper(), is_video=is_video)
     if not a.faces:
-        return (f"**{a.message}**",) + (None,) * 6
+        return no_result("We couldn't find a face",
+                         f"We need a clear, front-facing face to check. {'Try a clip where the face is visible for a few seconds.' if is_video else 'Try a photo where the face is clearly visible.'}",
+                         f"**{a.message}**")
+    friendly = (hero_html(a, path, is_video), reasons_html(a))
     ci = CONCEPT_LABELS.index(concept_name)
     skipped = len(a.faces) - a.n_used
     used_txt = (f"verdict from {a.n_used} of {len(a.faces)} faces ({skipped} skipped: head turned or tilted beyond "
@@ -204,9 +407,15 @@ def run_analysis(file, mode, concept_name, opacity):
     else:
         verdict += "\n\n(Nearest training faces are shown in Deep mode.)"
     report = build_report(path, a, eng, ci)
-    return (verdict, timeline_fig(a) if len(a.faces) > 1 else None, gallery_items(a, ci, opacity),
-            concept_fig(np.mean([f.contributions for f in a.faces], 0), float(np.mean([f.residual for f in a.faces]))),
-            evidence, report, a)
+    return friendly + (gr.Column(visible=True), gr.DownloadButton(value=report, visible=True),
+                       verdict, timeline_fig(a) if len(a.faces) > 1 else None, gallery_items(a, ci, opacity),
+                       concept_fig(np.mean([f.contributions for f in a.faces], 0), float(np.mean([f.residual for f in a.faces]))),
+                       evidence, report, a)
+
+
+def clear_all():
+    return (None, "", "", gr.Column(visible=False), gr.DownloadButton(visible=False),
+            "", None, None, None, None, None, None)
 
 
 def update_overlay(a, concept_name, opacity):
@@ -226,40 +435,53 @@ def rescore(a, mode, off_names):
 
 
 def build_ui():
-    with gr.Blocks(title="GRACE deepfake detector") as demo:
-        gr.Markdown("# GRACE deepfake detector\nUpload a face image or a short video. "
-                    "*Quick* runs the compressed student on the CPU; *Deep* runs the full teacher on the GPU.")
+    with gr.Blocks(title="GRACE · Deepfake check") as demo:
+        gr.HTML(HEADER_HTML)
         state = gr.State()
-        with gr.Row():
-            with gr.Column(scale=1):
-                file = gr.File(label="Image or video (MP4, MOV, AVI; up to 200 MB)",
-                               file_types=sorted(VIDEO_EXT | IMAGE_EXT))
-                # Deep by default: on re-cropped real faces the student drifts towards 0.5 (app check, 19 Nov)
-                mode = gr.Radio(["Quick", "Deep"], value="Deep", label="Mode",
-                                info="Deep: final teacher on GPU (most reliable). Quick: small student on CPU "
-                                     "(about 4 ms per face; less reliable, can read real faces as inconclusive).")
-                go = gr.Button("Analyse", variant="primary")
+        with gr.Row(equal_height=False):
+            with gr.Column(scale=3):
+                file = gr.File(label="Photo or video (up to 200 MB)", file_types=sorted(VIDEO_EXT | IMAGE_EXT))
             with gr.Column(scale=2):
-                verdict = gr.Markdown()
-                timeline = gr.Plot(label="Timeline")
-        with gr.Row():
-            with gr.Column():
-                concept_dd = gr.Dropdown(CONCEPT_LABELS, value=CONCEPT_LABELS[0], label="Concept map to overlay")
-                opacity = gr.Slider(0, 1, value=0.45, step=0.05, label="Overlay opacity")
-                gallery = gr.Gallery(label="Most suspicious faces", columns=4, height=260)
-            with gr.Column():
-                concepts = gr.Plot(label="Concept contributions")
-                off = gr.CheckboxGroup(CONCEPT_LABELS, label="Switch concepts off")
-                rescore_btn = gr.Button("Re-score")
-                rescore_out = gr.Markdown()
-        evidence = gr.Gallery(label="Nearest training faces (evidence)", columns=3, height=240)
-        report = gr.File(label="Download report (HTML)")
-        go.click(run_analysis, [file, mode, concept_dd, opacity], [verdict, timeline, gallery, concepts, evidence, report, state])
+                # Careful (teacher) by default: on re-cropped real faces the student drifts towards 0.5 (app check, 19 Nov)
+                mode = gr.Radio([CAREFUL, QUICK], value=CAREFUL, label="Type of check",
+                                info="Careful: our most accurate model, a few seconds per video. "
+                                     "Quick: a small model that runs on any computer; faster, but makes more mistakes.")
+                go = gr.Button("Check this file", variant="primary", size="lg")
+        hero = gr.HTML()
+        reasons = gr.HTML()
+        with gr.Column(visible=False) as after:
+            gr.HTML(NEXT_STEPS_HTML)
+            with gr.Row():
+                again = gr.Button("Check another file", variant="secondary")
+                save = gr.DownloadButton("Save this result", visible=False)
+        with gr.Accordion("Show technical details (for experts)", open=False):
+            verdict = gr.Markdown()
+            timeline = gr.Plot(label="Score for each face over time")
+            with gr.Row():
+                with gr.Column():
+                    concept_dd = gr.Dropdown(CONCEPT_LABELS, value=CONCEPT_LABELS[0], label="Concept map to overlay")
+                    opacity = gr.Slider(0, 1, value=0.45, step=0.05, label="Overlay opacity")
+                    gallery = gr.Gallery(label="Most suspicious faces", columns=4, height=260)
+                with gr.Column():
+                    concepts = gr.Plot(label="Concept contributions")
+                    off = gr.CheckboxGroup(CONCEPT_LABELS, label="Switch concepts off")
+                    rescore_btn = gr.Button("Re-score")
+                    rescore_out = gr.Markdown()
+            evidence = gr.Gallery(label="Nearest training faces (evidence)", columns=3, height=240)
+            report = gr.File(label="Full report (HTML)")
+        gr.HTML(f'<p class="g-limits">{FRIENDLY_LIMITS}</p>')
+
+        outs = [hero, reasons, after, save, verdict, timeline, gallery, concepts, evidence, report, state]
+        go.click(run_analysis, [file, mode, concept_dd, opacity], outs)
+        again.click(clear_all, None, [file] + outs)
         concept_dd.change(update_overlay, [state, concept_dd, opacity], gallery)
         opacity.change(update_overlay, [state, concept_dd, opacity], gallery)
         rescore_btn.click(rescore, [state, mode, off], rescore_out)
     return demo
 
 
+THEME = gr.themes.Default(primary_hue="blue", neutral_hue="slate",
+                          font=[gr.themes.GoogleFont("Inter"), "system-ui", "sans-serif"])
+
 if __name__ == "__main__":
-    build_ui().launch(server_name="127.0.0.1", server_port=7860)
+    build_ui().launch(server_name="127.0.0.1", server_port=7860, css=CSS, theme=THEME)

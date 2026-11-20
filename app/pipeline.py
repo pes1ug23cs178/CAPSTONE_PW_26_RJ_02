@@ -8,7 +8,7 @@ Margin: the runbook fallback says 1.3x the box, but on 40 training crops the cro
 Engines:
   QuickEngine: S3 student via ONNX Runtime on the CPU (decision weights w, b read from a JSON beside the
                ONNX file, so contributions and interventions need no PyTorch model).
-  DeepEngine:  G3 teacher on the GPU (PyTorch), plus CLIP cls features for identity drift and retrieval.
+  DeepEngine:  final teacher on the GPU (PyTorch), plus CLIP cls features for identity drift and retrieval.
 """
 from __future__ import annotations
 
@@ -180,7 +180,7 @@ class QuickEngine:
 
 
 class DeepEngine:
-    name = "Deep (G3 teacher, GPU)"
+    name = "Deep (final teacher, GPU)"
 
     def __init__(self, run_dir: Path, temperature: float = 1.0) -> None:
         import sys
