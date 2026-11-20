@@ -1,4 +1,4 @@
-Celeb-DF test mode: **interim**
+Celeb-DF test mode: **official**
 
 | split | method | label | videos | crops |
 | --- | --- | --- | --- | --- |
@@ -20,7 +20,7 @@ Celeb-DF test mode: **interim**
 | dfd_test | DeepFakeDetection | 1 | 911 | 29023 |
 | dfd_test | real | 0 | 363 | 11007 |
 | dfd_test | **all** | | **1274** | **40030** |
-| celebdf_test | Celeb-real | 0 | 108 | 3456 |
-| celebdf_test | Celeb-synthesis | 1 | 340 | 10856 |
-| celebdf_test | YouTube-real | 0 | 70 | 2223 |
-| celebdf_test | **all** | | **518** | **16535** |
+| celebdf_test | Celeb-real | 0 | 107 | 3412 |
+| celebdf_test | Celeb-synthesis | 1 | 340 | 10868 |
+| celebdf_test | YouTube-real | 0 | 69 | 2184 |
+| celebdf_test | **all** | | **516** | **16464** |
