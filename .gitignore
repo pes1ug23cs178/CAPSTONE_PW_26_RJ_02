@@ -47,3 +47,11 @@ runs/
 cache/
 release/
 results/app_screens/*.mp4
+
+# ESA report / slides: keep sources, generators and final outputs; skip renders and scratch files
+ESA Report/build/pages/
+ESA Report/build/__pycache__/
+ESA Report/ppt_build/render/
+ESA Report/ppt_build/tpl/
+ESA Report/ppt_build/*.png
+ESA Report/**/~$*

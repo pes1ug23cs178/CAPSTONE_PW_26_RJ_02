@@ -1,6 +1,6 @@
 """T7.3 draft: results/summary.md built only from the results files (every number traced to a metrics file).
 Findings are phrased neutrally ("raises"/"lowers") from the measured deltas, so weak or negative results read
-as such. A human (or Claude) edits the wording afterwards; numbers must not be typed by hand.
+as such. A team member edits the wording afterwards; numbers must not be typed by hand.
 """
 from __future__ import annotations
 
