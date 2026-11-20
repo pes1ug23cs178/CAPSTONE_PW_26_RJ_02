@@ -6,7 +6,7 @@
 - Unseen tests: DeepFakeDetection (DFD) and Celeb-DF v2; FF++ test for in-domain. Celeb-DF test mode: interim.
 - Metric: video AUC (mean fake probability over a video's crops); thresholds from FF++ validation only.
 - Models: Swin-B baseline (B1, B2 + DANN), CLIP ViT-L/14 + LoRA (C1), + self-blended images (C2), + concept bottleneck (G1), + frequency branch with gated fusion (G2 DCT / G2-fft), + DANN (G3); final teacher chosen on FF++ val between F1 (G2-DCT + residual 1e-2 + harder val selection) and F2 (F1 + DANN on patch features); EfficientNet-B0 students S0/S2/S3 distilled from the final teacher.
-- Hardware: one RTX 4500 Ada (24 GB); seeds 42, 1 and 2 for the final teacher (F1), B1 and all three students (S0, S2, S3); X1 three seeds, D2 two seeds; other models one seed (42). Numbers are seed means where more than one seed exists.
+- Hardware: one RTX 4500 Ada (24 GB); seeds 42, 1 and 2 for the final teacher (F1), B1 and all three students (S0, S2, S3); X1 and D2 three seeds; other models one seed (42). Numbers are seed means where more than one seed exists.
 
 ## Findings
 
