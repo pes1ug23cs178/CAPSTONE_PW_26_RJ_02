@@ -119,7 +119,8 @@ def icon(name: str, size: int = 18) -> str:
 
 def glow(face_crop: np.ndarray, m: np.ndarray) -> np.ndarray:
     """Orange glow where the concept map is high (plain view; the jet overlay stays in the technical view)."""
-    a = (0.65 * np.clip(m, 0, 1))[..., None]
+    # soft glow: weak map values fade out (m**2), strongest areas reach 42% orange, so the face stays visible
+    a = (0.42 * np.clip(m, 0, 1) ** 2)[..., None]
     orange = np.array([232, 106, 26], np.float32)
     return (face_crop * (1 - a) + orange * a).astype(np.uint8)
 
@@ -134,11 +135,38 @@ def message_card(title: str, body: str) -> str:
             f'<p>{htmllib.escape(body)}</p></div>')
 
 
+def preview(path: str, is_video: bool):
+    """A still of the uploaded file for the verdict card (middle frame of a video) and its length as m:ss."""
+    import cv2
+    length = ""
+    if is_video:
+        cap = cv2.VideoCapture(path)
+        n, fps = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)), cap.get(cv2.CAP_PROP_FPS) or 0
+        cap.set(cv2.CAP_PROP_POS_FRAMES, max(n // 2, 0))
+        ok, bgr = cap.read()
+        cap.release()
+        if fps > 0 and n > 0:
+            s = int(round(n / fps))
+            length = f"{s // 60}:{s % 60:02d}"
+    else:
+        bgr = cv2.imread(path)
+        ok = bgr is not None
+    if not ok:
+        return None, length
+    h, w = bgr.shape[:2]
+    if w > 720:
+        bgr = cv2.resize(bgr, (720, int(h * 720 / w)), interpolation=cv2.INTER_AREA)
+    return cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB), length
+
+
 def hero_html(a: Analysis, path: str, is_video: bool) -> str:
     noun = "video" if is_video else "image"
     label, head, sub, colour, tint, ic = VERDICT_UI.get(a.verdict, VERDICT_UI["Inconclusive"])
     faces = used_faces(a)
     face = max(faces, key=lambda f: f.prob) if a.verdict != "Likely real" else faces[0]
+    still, length = preview(path, is_video)
+    media = still if still is not None else face.crop
+    pill = f"Your video · {length}" if is_video and length else ("Your video" if is_video else "Your photo")
     pos = min(max(a.prob, 0.03), 0.97) * 100
     skipped = len(a.faces) - a.n_used
     if is_video:
@@ -150,8 +178,8 @@ def hero_html(a: Analysis, path: str, is_video: bool) -> str:
     return f"""
 <section class="g-card g-hero">
   <div class="g-hero-media">
-    <img src="data:image/png;base64,{img_to_b64(face.crop)}" alt="Face found in your {noun}">
-    <div class="g-caption">{htmllib.escape(Path(path).name)} · face found in your {noun}</div>
+    <div class="g-thumb"><img src="data:image/png;base64,{img_to_b64(media)}" alt="Your {noun}"><span class="g-pill">{pill}</span></div>
+    <div class="g-caption">{htmllib.escape(Path(path).name)} · checked {datetime.now():%H:%M}</div>
   </div>
   <div class="g-hero-text">
     <div class="g-badge" style="background:{tint};color:{colour}">{icon(ic)}<span>{label}</span></div>
@@ -200,61 +228,93 @@ def reasons_html(a: Analysis) -> str:
 
 
 NEXT_STEPS_HTML = """
-<section class="g-card g-next">
-  <h2>What you can do now</h2>
-  <div class="g-steps">
-    <div><span>1</span><p>Check where the file came from. Is the account or website trustworthy?</p></div>
-    <div><span>2</span><p>Look for the same clip from a news outlet or the person's official page.</p></div>
-    <div><span>3</span><p>Don't share it as genuine until you're sure.</p></div>
-  </div>
-</section>"""
+<h2 class="g-h2">What you can do now</h2>
+<div class="g-steps">
+  <div><span>1</span><p>Check where the file came from. Is the account or website trustworthy?</p></div>
+  <div><span>2</span><p>Look for the same clip from a news outlet or the person's official page.</p></div>
+  <div><span>3</span><p>Don't share it as genuine until you're sure.</p></div>
+</div>"""
 
 HEADER_HTML = """
 <header class="g-header">
-  <div class="g-brand">
-    <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="8" fill="#16181D"/><circle cx="16" cy="14" r="6" fill="none" stroke="#fff" stroke-width="2"/><path d="M9 25c2-3 4.5-4.5 7-4.5s5 1.5 7 4.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
-    <div><b>GRACE</b> <span>Deepfake check</span></div>
+  <div class="g-header-in">
+    <div class="g-brand">
+      <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="8" fill="#16181D"/><circle cx="16" cy="14" r="6" fill="none" stroke="#fff" stroke-width="2"/><path d="M9 25c2-3 4.5-4.5 7-4.5s5 1.5 7 4.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+      <div>GRACE <span>Deepfake check</span></div>
+    </div>
+    <nav><a href="#how">How it works</a><a href="#limits">What it can't do</a></nav>
   </div>
-  <p>Upload a photo or a short video of a face. We'll tell you, in plain words, whether it looks edited.</p>
-</header>"""
+</header>
+<p class="g-intro">Upload a photo or a short video of a face. We'll tell you, in plain words, whether it looks edited.</p>"""
 
+HOW_HTML = """
+<section id="how" class="g-how">
+  <h2 class="g-h2">How it works</h2>
+  <div class="g-steps">
+    <div><span>1</span><p>We find the face in up to 32 moments of your video (or in your photo) and skip moments where the head is turned away.</p></div>
+    <div><span>2</span><p>Our model looks for 10 tell-tale signs of face swapping, such as a seam around the face or a mouth that looks edited.</p></div>
+    <div><span>3</span><p>We combine them into one answer and show you the strongest clues, with the place on the face where we found them.</p></div>
+  </div>
+</section>"""
+
+# Selectors start with .gradio-container so they win over Gradio's own .prose / block styles.
 CSS = """
-.gradio-container{max-width:1120px !important;margin:0 auto !important;font-family:Inter,system-ui,sans-serif}
-.g-header{display:flex;flex-direction:column;gap:6px;padding:8px 0 4px}
-.g-brand{display:flex;align-items:center;gap:12px;font-size:22px}
-.g-brand span{color:#545A64;font-weight:500}
-.g-header p{margin:0;font-size:16px;color:#545A64}
-.g-card{background:#fff;color:#16181D;border:1px solid #E2E2DC;border-radius:20px;padding:28px}
-.g-msg h2{margin:0 0 8px;font-size:24px}.g-msg p{margin:0;font-size:16px;color:#3A3F47}
-.g-hero{display:flex;flex-wrap:wrap;gap:32px;align-items:center}
-.g-hero-media{flex:1 1 260px;display:flex;flex-direction:column;gap:10px}
-.g-hero-media img{width:100%;max-width:360px;aspect-ratio:1/1;object-fit:cover;border-radius:16px}
-.g-caption{font-size:14px;color:#545A64;word-break:break-all}
-.g-hero-text{flex:1.4 1 380px;display:flex;flex-direction:column;gap:16px}
-.g-badge{display:inline-flex;align-self:flex-start;align-items:center;gap:8px;font-weight:600;font-size:15px;padding:8px 14px;border-radius:999px}
-.g-hero h1{margin:0;font-size:40px;line-height:1.1;font-weight:700;color:#16181D}
-.g-sub{margin:0;font-size:18px;line-height:1.55;color:#3A3F47}
-.g-meter-label{font-size:14px;font-weight:600;color:#3A3F47}
-.g-meter{position:relative;height:14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:-6px}
-.g-seg-real{background:#C9D8F2;border-radius:999px 0 0 999px}.g-seg-mid{background:#DADCE0}.g-seg-fake{background:#F4C9A9;border-radius:0 999px 999px 0}
-.g-knob{position:absolute;top:-6px;width:26px;height:26px;margin-left:-13px;border-radius:999px;background:#fff;border:3px solid #16181D;box-sizing:border-box}
-.g-scale{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));font-size:13px;color:#545A64;margin-top:-8px}
-.g-scale span:nth-child(2){text-align:center}.g-scale span:nth-child(3){text-align:right}
-.g-basis,.g-note{margin:0;font-size:14px;color:#545A64}.g-note{color:#8A4B12}
-.g-reasons h2,.g-next h2{margin:8px 0 14px;font-size:24px;color:inherit}
-.g-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
-.g-reason{padding:18px;display:flex;flex-direction:column;gap:12px}
-.g-reason img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px}
-.g-reason h3{margin:0;font-size:18px;line-height:1.35;color:#16181D}.g-reason p{margin:0;font-size:15px;line-height:1.55;color:#3A3F47}
-.g-tag{align-self:flex-start;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px}
-.g-tag-strong{background:#FCEBDD;color:#9A3A0C}.g-tag-some{background:#FDF3E7;color:#8A4B12}.g-tag-ok{background:#E3ECFA;color:#1F55B8}
-.g-hint{font-size:14px;color:#545A64;margin:10px 0 0}
-.g-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-.g-steps div{display:flex;gap:12px}.g-steps p{margin:0;font-size:15px;line-height:1.5;color:#16181D}
-.g-steps span{flex:none;width:32px;height:32px;border-radius:999px;background:#E3ECFA;color:#1F55B8;font-weight:600;display:flex;align-items:center;justify-content:center}
-.g-limits{font-size:14px;line-height:1.6;color:#545A64;max-width:760px}
-@media (max-width:640px){.g-hero h1{font-size:30px}.g-card{padding:20px}}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap');
+body, gradio-app, .gradio-container{background:#F6F6F3 !important}
+.gradio-container{max-width:1120px !important;margin:0 auto !important;padding:0 24px 48px !important;font-family:Inter,system-ui,sans-serif !important;color:#16181D}
+footer{display:none !important}
+.gradio-container .g-header{margin:0 calc(50% - 50vw);background:#fff;border-bottom:1px solid #E2E2DC}
+.gradio-container .g-header-in{max-width:1120px;margin:0 auto;padding:16px 24px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;box-sizing:border-box}
+.gradio-container .g-brand{display:flex;align-items:center;gap:12px;font-family:'Space Grotesk',Inter,sans-serif;font-weight:700;font-size:20px;color:#16181D}
+.gradio-container .g-brand span{color:#545A64;font-weight:500}
+.gradio-container .g-header nav{display:flex;flex-wrap:wrap;gap:24px;font-size:15px}
+.gradio-container .g-header nav a{color:#1F55B8;text-decoration:none}.gradio-container .g-header nav a:hover{color:#163F8A;text-decoration:underline}
+.gradio-container .g-intro{margin:24px 0 0;font-size:16px;color:#3A3F47}
+.gradio-container .g-upload{background:#fff;border:1px solid #E2E2DC;border-radius:20px;padding:20px;gap:20px}
+.gradio-container .g-upload .block{border-color:#E2E2DC}
+.gradio-container .g-card,.gradio-container .g-col-card{background:#fff;color:#16181D;border:1px solid #E2E2DC;border-radius:20px;padding:28px}
+.gradio-container .g-col-card{gap:20px}
+.gradio-container .g-h2,.gradio-container .g-reasons h2,.gradio-container .g-msg h2{margin:0 0 16px;font-family:'Space Grotesk',Inter,sans-serif;font-size:26px;font-weight:700;color:#16181D}
+.gradio-container .g-msg p{margin:0;font-size:16px;color:#3A3F47}
+.gradio-container .g-hero{display:flex;flex-wrap:wrap;gap:32px;align-items:stretch}
+.gradio-container .g-hero-media{flex:1 1 320px;display:flex;flex-direction:column;gap:12px}
+.gradio-container .g-thumb{position:relative;aspect-ratio:16/10;border-radius:14px;background:#2B2F36;overflow:hidden}
+.gradio-container .g-thumb img{width:100%;height:100%;object-fit:cover;display:block;margin:0}
+.gradio-container .g-pill{position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.6);color:#fff;font-size:13px;padding:4px 10px;border-radius:999px}
+.gradio-container .g-caption{font-size:14px;color:#545A64;word-break:break-all}
+.gradio-container .g-hero-text{flex:1.3 1 420px;display:flex;flex-direction:column;gap:20px;justify-content:center}
+.gradio-container .g-badge{display:inline-flex;align-self:flex-start;align-items:center;gap:8px;font-weight:600;font-size:15px;padding:8px 14px;border-radius:999px}
+.gradio-container .g-hero h1{margin:0;font-family:'Space Grotesk',Inter,sans-serif;font-size:44px;line-height:1.1;font-weight:700;color:#16181D}
+.gradio-container .g-sub{margin:0;font-size:18px;line-height:1.55;color:#3A3F47}
+.gradio-container .g-meter-label{font-size:14px;font-weight:600;color:#3A3F47;margin-bottom:-12px}
+.gradio-container .g-meter{position:relative;height:14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.gradio-container .g-seg-real{background:#C9D8F2;border-radius:999px 0 0 999px}.gradio-container .g-seg-mid{background:#DADCE0}.gradio-container .g-seg-fake{background:#F4C9A9;border-radius:0 999px 999px 0}
+.gradio-container .g-knob{position:absolute;top:-6px;width:26px;height:26px;margin-left:-13px;border-radius:999px;background:#fff;border:3px solid #16181D;box-sizing:border-box}
+.gradio-container .g-scale{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));font-size:13px;color:#545A64;margin-top:-12px}
+.gradio-container .g-scale span:nth-child(2){text-align:center}.gradio-container .g-scale span:nth-child(3){text-align:right}
+.gradio-container .g-basis,.gradio-container .g-note{margin:0;font-size:14px;color:#545A64}.gradio-container .g-note{color:#8A4B12}
+.gradio-container .g-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.gradio-container .g-reason{padding:20px;display:flex;flex-direction:column;gap:14px;border-radius:16px}
+.gradio-container .g-reason img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;margin:0}
+.gradio-container .g-reason h3{margin:0;font-size:18px;line-height:1.35;font-weight:600;color:#16181D}
+.gradio-container .g-reason p{margin:0;font-size:15px;line-height:1.55;color:#3A3F47}
+.gradio-container .g-tag{align-self:flex-start;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px}
+.gradio-container .g-tag-strong{background:#FCEBDD;color:#9A3A0C}.gradio-container .g-tag-some{background:#FDF3E7;color:#8A4B12}.gradio-container .g-tag-ok{background:#E3ECFA;color:#1F55B8}
+.gradio-container .g-hint{font-size:14px;color:#545A64;margin:12px 0 0}
+.gradio-container .g-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.gradio-container .g-steps div{display:flex;gap:12px}
+.gradio-container .g-steps p{margin:0;font-size:15px;line-height:1.5;color:#16181D}
+.gradio-container .g-steps span{flex:none;width:32px;height:32px;border-radius:999px;background:#E3ECFA;color:#1F55B8;font-weight:600;display:flex;align-items:center;justify-content:center}
+.gradio-container .g-actions{gap:12px;justify-content:flex-start}
+.gradio-container .g-actions button,.gradio-container .g-actions a{flex:0 0 auto !important;min-width:180px;min-height:44px;border-radius:12px !important;font-weight:600}
+.gradio-container .g-actions .secondary,.gradio-container #g-save{border:1px solid #C9CBC4 !important;background:#fff !important;color:#16181D !important}
+.gradio-container .g-tech{background:#fff;border:1px solid #E2E2DC !important;border-radius:16px !important}
+.gradio-container .g-how{padding:8px 0 0}
+.gradio-container .g-limits{margin:0;font-size:14px;line-height:1.6;color:#545A64;max-width:760px}
+@media (max-width:640px){.gradio-container .g-hero h1{font-size:32px}.gradio-container .g-card,.gradio-container .g-col-card{padding:20px}}
 """
+
+FORCE_LIGHT_JS = "() => { document.body.classList.remove('dark'); document.querySelector('gradio-app')?.classList.remove('dark'); }"
 
 
 def cropper():
@@ -438,7 +498,7 @@ def build_ui():
     with gr.Blocks(title="GRACE · Deepfake check") as demo:
         gr.HTML(HEADER_HTML)
         state = gr.State()
-        with gr.Row(equal_height=False):
+        with gr.Row(equal_height=False, elem_classes="g-upload"):
             with gr.Column(scale=3):
                 file = gr.File(label="Photo or video (up to 200 MB)", file_types=sorted(VIDEO_EXT | IMAGE_EXT))
             with gr.Column(scale=2):
@@ -449,39 +509,48 @@ def build_ui():
                 go = gr.Button("Check this file", variant="primary", size="lg")
         hero = gr.HTML()
         reasons = gr.HTML()
-        with gr.Column(visible=False) as after:
+        with gr.Column(visible=False, elem_classes="g-col-card") as after:
             gr.HTML(NEXT_STEPS_HTML)
-            with gr.Row():
-                again = gr.Button("Check another file", variant="secondary")
-                save = gr.DownloadButton("Save this result", visible=False)
-        with gr.Accordion("Show technical details (for experts)", open=False):
+            with gr.Row(elem_classes="g-actions"):
+                again = gr.Button("Check another file", variant="primary")
+                save = gr.DownloadButton("Save this result", variant="secondary", visible=False, elem_id="g-save")
+        with gr.Accordion("Show technical details (for experts)", open=False, elem_classes="g-tech"):
             verdict = gr.Markdown()
             timeline = gr.Plot(label="Score for each face over time")
             with gr.Row():
                 with gr.Column():
                     concept_dd = gr.Dropdown(CONCEPT_LABELS, value=CONCEPT_LABELS[0], label="Concept map to overlay")
                     opacity = gr.Slider(0, 1, value=0.45, step=0.05, label="Overlay opacity")
-                    gallery = gr.Gallery(label="Most suspicious faces", columns=4, height=260)
+                    gallery = gr.Gallery(label="Most suspicious faces", columns=4, height=260, elem_id="g-gallery")
                 with gr.Column():
                     concepts = gr.Plot(label="Concept contributions")
                     off = gr.CheckboxGroup(CONCEPT_LABELS, label="Switch concepts off")
                     rescore_btn = gr.Button("Re-score")
-                    rescore_out = gr.Markdown()
+                    rescore_out = gr.Markdown(elem_id="g-rescore")
             evidence = gr.Gallery(label="Nearest training faces (evidence)", columns=3, height=240)
             report = gr.File(label="Full report (HTML)")
-        gr.HTML(f'<p class="g-limits">{FRIENDLY_LIMITS}</p>')
+        gr.HTML(HOW_HTML)
+        gr.HTML(f'<p id="limits" class="g-limits">{FRIENDLY_LIMITS}</p>')
 
         outs = [hero, reasons, after, save, verdict, timeline, gallery, concepts, evidence, report, state]
-        go.click(run_analysis, [file, mode, concept_dd, opacity], outs)
-        again.click(clear_all, None, [file] + outs)
-        concept_dd.change(update_overlay, [state, concept_dd, opacity], gallery)
-        opacity.change(update_overlay, [state, concept_dd, opacity], gallery)
-        rescore_btn.click(rescore, [state, mode, off], rescore_out)
+        go.click(run_analysis, [file, mode, concept_dd, opacity], outs, api_name="check", scroll_to_output=True)
+        again.click(clear_all, None, [file] + outs, api_name="clear")
+        concept_dd.change(update_overlay, [state, concept_dd, opacity], gallery, api_name="overlay_concept")
+        opacity.change(update_overlay, [state, concept_dd, opacity], gallery, api_name="overlay_opacity")
+        rescore_btn.click(rescore, [state, mode, off], rescore_out, api_name="rescore")
     return demo
 
 
 THEME = gr.themes.Default(primary_hue="blue", neutral_hue="slate",
-                          font=[gr.themes.GoogleFont("Inter"), "system-ui", "sans-serif"])
+                          font=[gr.themes.GoogleFont("Inter"), "system-ui", "sans-serif"]).set(
+    body_background_fill="#F6F6F3", body_background_fill_dark="#F6F6F3",
+    button_primary_background_fill="#16181D", button_primary_background_fill_hover="#2B2F36",
+    button_primary_background_fill_dark="#16181D", button_primary_background_fill_hover_dark="#2B2F36",
+    button_primary_text_color="#FFFFFF", button_primary_text_color_dark="#FFFFFF",
+    button_secondary_background_fill="#FFFFFF", button_secondary_background_fill_dark="#FFFFFF",
+    button_secondary_text_color="#16181D", button_secondary_text_color_dark="#16181D",
+    button_secondary_border_color="#C9CBC4", button_secondary_border_color_dark="#C9CBC4")
 
 if __name__ == "__main__":
-    build_ui().launch(server_name="127.0.0.1", server_port=7860, css=CSS, theme=THEME)
+    build_ui().launch(server_name="127.0.0.1", server_port=7860, css=CSS, theme=THEME, js=FORCE_LIGHT_JS,
+                      footer_links=[])
