@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `s3x_kd_from_x1_s42` (started 06:23), then S3x seeds 1 and 2. All runbook tasks are done; these are extra seeds and experiments.
+- GPU job: `s3x_kd_from_x1_s1` (started 07:06), then S3x seed 2. All runbook tasks are done; these are extra seeds and experiments.
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -105,6 +105,7 @@ See `splits/counts.md` for the full table.
 | **S3** student (full KD: logit + z + concepts + maps) `s3_kd_full_s42` | 0.9851 | 0.8540 | 0.8231 | 0.9807 clean / 0.9425 jpeg:50 | 0.7 |
 | S3 seed 1 `s3_kd_full_s1` | 0.9773 | 0.8477 | 0.7786 | | 0.7 |
 | S3 seed 2 `s3_kd_full_s2` | 0.9721 | 0.8291 | 0.8218 | 0.9522 jpeg:50 (9) | 0.7 |
+| S3x student distilled from X1 (FF++ + SBI data) `s3x_kd_from_x1_s42` | 0.9907 | 0.8506* | 0.8078 | 0.9581 jpeg:50 (10) | 0.7 |
 | ~~B2 (collapsed run, superseded by r2)~~ | 0.9987 | 0.9140 | 0.8696 | 0.9988 (2) | 0.92 |
 
 - B1 checks: in-domain 0.9948 (< 0.995 alarm), cross-dataset max 0.910 (< 0.95 alarm). Celeb-DF fakes vs Celeb-real only: 0.911; vs YouTube-real only: 0.881, so no single real group drives the number. Celeb-DF fakes get low probabilities (mean 0.26), so accuracy at the FF++ threshold is 0.71 despite AUC 0.90: a calibration shift across datasets.
@@ -191,3 +192,4 @@ See `splits/counts.md` for the full table.
 - 2026-11-20 05:21 D2 seed 2 done: FF++ 0.9979 / DFD 0.9512 / Celeb-DF 0.8637. **D2 over 3 seeds: DFD 0.951±0.002, Celeb-DF 0.871±0.006 vs F1 0.951±0.004 / 0.901±0.017**: same on DFD, about 0.03 lower on Celeb-DF, the target it adapted to. Concept share on Celeb-DF rises to 0.90-0.99 (the head leans on concepts there) without improving AUC. Next: final_eval_all_v5, make_tables_v5.
 - 2026-11-20 05:35 Queued S3x: the S3 recipe (FF++ + SBI student data, full KD) distilled from X1 seed 42 instead of F1, 3 seeds. Question: does X1's Celeb-DF gain (0.958 vs 0.901) reach a student that never sees DFD data? Teacher outputs go to a separate `cache/teacher_x1` (F1 cache untouched); `cache_teacher.py` gained `--out` and run-name `--teacher`. Caveat: DFD test is not fully held out for S3x (its teacher trained on DFD); Celeb-DF is the clean comparison.
 - 2026-11-20 06:23 final_eval_all_v5 (900 rows, every model at all its seeds) + make_tables_v5 (tables, summary, release) done. X1 teacher cache built in `cache/teacher_x1` (check: max |cached - fresh| logit 7.6e-06). S3x seed 42 started.
+- 2026-11-20 07:06 S3x seed 42 done: FF++ 0.9907 / DFD 0.8506 (*teacher saw DFD) / Celeb-DF 0.8078, the same as S3 from F1 (Celeb-DF 0.808±0.025). First seed: X1's Celeb-DF gain does not pass through distillation on FF++ + SBI crops. Seeds 1/2 next.
