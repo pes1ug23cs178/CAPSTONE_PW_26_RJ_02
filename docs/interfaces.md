@@ -108,3 +108,9 @@ jobs:
 
 
 > Repository notes (17 Nov 2026): `video_id` for FF++ fakes is `ffpp_<method>_<AAA_BBB>` (method added so the same pair under Deepfakes/Face2Face/FaceSwap stays unique); thresholded metrics (acc, precision, recall, F1) are video-level; `predictions_*.csv` also carry `logit`, `c1..c10`, `concept_part`, `gate` where the model has them; `video_cues_*.csv` holds per-video flicker, identity drift and the per-frame score timeline.
+
+### Commit IDs (`docs/commit_map.csv`)
+
+The repository history was re-written once on 20 Nov 2026 (commit messages only; files, authors and dates
+unchanged), which gave every commit a new ID. `experiments.csv` (column `commit`) and `STATUS.md` quote the IDs
+from before that date; `docs/commit_map.csv` maps each old ID to the current one.
