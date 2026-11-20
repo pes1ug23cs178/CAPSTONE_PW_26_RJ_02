@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `teacher_cache_x1x` (started 08:30), then S0x / S3xx on FF++ + SBI + DFD student data, 3 seeds each, interleaved (~5 h). All runbook tasks are done; these are extra experiments.
+- GPU job: `s0x_student_dfd_s42` (started 08:57), then S3xx s42, S0x s1, S3xx s1, S0x s2, S3xx s2 (~4.5 h). All runbook tasks are done; these are extra experiments.
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -197,4 +197,5 @@ See `splits/counts.md` for the full table.
 - 2026-11-20 07:06 S3x seed 42 done: FF++ 0.9907 / DFD 0.8506 (*teacher saw DFD) / Celeb-DF 0.8078, the same as S3 from F1 (Celeb-DF 0.808±0.025). First seed: X1's Celeb-DF gain does not pass through distillation on FF++ + SBI crops. Seeds 1/2 next.
 - 2026-11-20 07:48 S3x seed 1 done: FF++ 0.9856 / DFD 0.8776* / Celeb-DF 0.8368. Two seeds: Celeb-DF 0.822 vs S3-from-F1 0.808±0.025, within seed noise. Seed 2 next.
 - 2026-11-20 08:30 S3x seed 2 done: Celeb-DF 0.7739. **S3x over 3 seeds: Celeb-DF 0.806±0.031 vs S3 (from F1) 0.808±0.025**: a better teacher (X1, Celeb-DF 0.958) gives no better student when the student only sees FF++ + SBI crops. The teacher's Celeb-DF gain comes from DFD data and does not transfer through distillation on FF++ crops. Next: X1 cache over the DFD-augmented student data, then S0x / S3xx.
+- 2026-11-20 08:57 X1 cache over FF++ + SBI + DFD student data built (`cache/teacher_x1x`, 126,088 crops; check 9.5e-06). S0x seed 42 started.
 - 2026-11-20 08:00 Queued extension 2 (data vs teacher for the students): student data = FF++ train + SBI pool + all DFD videos (`cache/adapt/student_x_train.csv`, 126,088 crops, built by `scripts/make_student_x.py`). S0x = no teacher, S3xx = full KD from X1 (cache `cache/teacher_x1x`), 3 seeds each. Compares against S0/S3 (FF++ data) on Celeb-DF. DFD fakes have concept/boundary targets masked like FF++ fakes (checked). `cache_teacher.py` gained `--csv`.
