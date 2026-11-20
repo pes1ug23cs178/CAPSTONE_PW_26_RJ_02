@@ -37,14 +37,36 @@ from app.pipeline import (CONCEPT_LABELS, LIMITATION, Analysis, DeepEngine, Face
 
 VIDEO_EXT = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
-MAX_MB = 200
+
+# ---------- deployment settings (environment variables; the lab defaults are unchanged) ----------
+# GRACE_ONLINE=1         public deployment: smaller uploads, no dataset faces shown, privacy note
+# GRACE_MODEL_REPO=u/r   download the release files from this Hugging Face model repo (else use ./release)
+# GRACE_MODEL_REVISION   pin a model-repo commit (default: latest)
+# GRACE_FRAMES           frames sampled per video (default 32; 16 online keeps CPU checks around 30 s)
+# GRACE_MAX_MB           upload limit in MB (default 200; 50 online)
+ONLINE = os.environ.get("GRACE_ONLINE") == "1"
+MAX_MB = int(os.environ.get("GRACE_MAX_MB") or (50 if ONLINE else 200))
+N_FRAMES = int(os.environ.get("GRACE_FRAMES") or (16 if ONLINE else 32))
+SHOW_EVIDENCE = not ONLINE  # nearest training faces are dataset images we may not publish
 
 _engines: dict = {}
 _cropper = None
 _index = None
+_release = None
 
 
-QUICK_ONNX = REPO / "release" / "grace_student.onnx"
+def release_dir() -> Path:
+    """Folder with the released model files: a Hugging Face model repo when GRACE_MODEL_REPO is set, else ./release."""
+    global _release
+    if _release is None:
+        repo_id = os.environ.get("GRACE_MODEL_REPO")
+        if repo_id:
+            from huggingface_hub import snapshot_download
+            _release = Path(snapshot_download(repo_id, revision=os.environ.get("GRACE_MODEL_REVISION") or None,
+                                              token=os.environ.get("HF_TOKEN") or None))
+        else:
+            _release = REPO / "release"
+    return _release
 
 
 def latest_run(name: str):
@@ -58,22 +80,40 @@ def temperature(run) -> float:
     return json.loads(p.read_text())["temperature"] if p and p.exists() else 1.0
 
 
+def released_temperature(stem: str) -> float:
+    p = release_dir() / f"{stem}_temperature.json"
+    return json.loads(p.read_text())["temperature"] if p.exists() else 1.0
+
+
 CAREFUL, QUICK = "Careful check (recommended)", "Quick check"
 MODE_OF = {CAREFUL: "Deep", QUICK: "Quick", "Deep": "Deep", "Quick": "Quick"}
 
 
+def quick_onnx() -> Path:
+    return release_dir() / "grace_student.onnx"
+
+
 def engine(mode: str):
+    """Lab: the latest run folders under runs/. Elsewhere (no runs/): the released files."""
     mode = MODE_OF.get(mode, mode)
     if mode not in _engines:
         if mode == "Quick":
-            _engines[mode] = QuickEngine(QUICK_ONNX, QUICK_ONNX.with_suffix(".json"), temperature(latest_run("s3_kd_full")))
-            _engines[mode].name = "Quick check (S3 student, ONNX on CPU)"
+            run = latest_run("s3_kd_full")
+            t = temperature(run) if run else released_temperature("grace_student_s3")
+            _engines[mode] = QuickEngine(quick_onnx(), quick_onnx().with_suffix(".json"), t)
+            _engines[mode].name = "Quick check (small student model, CPU)"
         else:
             from utils.common import final_teacher_name
             name = final_teacher_name()
             run = latest_run(name)
-            _engines[mode] = DeepEngine(run, temperature(run))
-            _engines[mode].name = f"Careful check (final teacher {name.split('_')[0].upper()}, GPU)"
+            if run is None:
+                run = release_dir() / "grace_teacher.pth"
+                t = released_temperature("grace_teacher")
+            else:
+                t = temperature(run)
+            e = DeepEngine(run, t)
+            _engines[mode] = e
+            _engines[mode].name = f"Careful check (final teacher {name.split('_')[0].upper()}, {e.device.type.upper()})"
     return _engines[mode]
 
 
@@ -433,11 +473,11 @@ def run_analysis(file, mode, concept_name, opacity):
                          f"Please upload a photo (JPG, PNG, WEBP) or a video (MP4, MOV, AVI, MKV, WEBM), not {ext or 'this file'}.")
     if Path(path).stat().st_size > MAX_MB * 1e6:
         return no_result("This file is too large", f"Please upload a file smaller than {MAX_MB} MB, or a shorter clip.")
-    if MODE_OF.get(mode) == "Quick" and not QUICK_ONNX.exists():
+    if MODE_OF.get(mode) == "Quick" and not quick_onnx().exists():
         return no_result("Quick check is not available", "Please use the Careful check instead.")
     is_video = ext in VIDEO_EXT
     eng = engine(mode)
-    a = analyse(path, eng, cropper(), is_video=is_video)
+    a = analyse(path, eng, cropper(), is_video=is_video, n_frames=N_FRAMES)
     if not a.faces:
         return no_result("We couldn't find a face",
                          f"We need a clear, front-facing face to check. {'Try a clip where the face is visible for a few seconds.' if is_video else 'Try a photo where the face is clearly visible.'}",
@@ -451,7 +491,9 @@ def run_analysis(file, mode, concept_name, opacity):
                + (f"\n\n**{a.message}**" if a.message else "") + f"\n\n_{LIMITATION}_")
     top = a.faces[top_faces(a)[0]]
     evidence = []
-    if top.z is not None:
+    if not SHOW_EVIDENCE:
+        pass  # online: dataset faces are not shown (licence)
+    elif top.z is not None:
         try:
             from data.dataset import load_rgb
             from utils.config import load_paths
@@ -500,7 +542,7 @@ def build_ui():
         state = gr.State()
         with gr.Row(equal_height=False, elem_classes="g-upload"):
             with gr.Column(scale=3):
-                file = gr.File(label="Photo or video (up to 200 MB)", file_types=sorted(VIDEO_EXT | IMAGE_EXT))
+                file = gr.File(label=f"Photo or video (up to {MAX_MB} MB)", file_types=sorted(VIDEO_EXT | IMAGE_EXT))
             with gr.Column(scale=2):
                 # Careful (teacher) by default: on re-cropped real faces the student drifts towards 0.5 (app check, 19 Nov)
                 mode = gr.Radio([CAREFUL, QUICK], value=CAREFUL, label="Type of check",
@@ -527,10 +569,13 @@ def build_ui():
                     off = gr.CheckboxGroup(CONCEPT_LABELS, label="Switch concepts off")
                     rescore_btn = gr.Button("Re-score")
                     rescore_out = gr.Markdown(elem_id="g-rescore")
-            evidence = gr.Gallery(label="Nearest training faces (evidence)", columns=3, height=240)
+            evidence = gr.Gallery(label="Nearest training faces (evidence)", columns=3, height=240, visible=SHOW_EVIDENCE)
             report = gr.File(label="Full report (HTML)")
         gr.HTML(HOW_HTML)
         gr.HTML(f'<p id="limits" class="g-limits">{FRIENDLY_LIMITS}</p>')
+        if ONLINE:
+            gr.HTML('<p class="g-limits">Privacy: your file is analysed on this server only for this check. It is not '
+                    'shared, and it is deleted when the app restarts. Please do not upload media you have no right to use.</p>')
 
         outs = [hero, reasons, after, save, verdict, timeline, gallery, concepts, evidence, report, state]
         go.click(run_analysis, [file, mode, concept_dd, opacity], outs, api_name="check", scroll_to_output=True)
@@ -551,6 +596,13 @@ THEME = gr.themes.Default(primary_hue="blue", neutral_hue="slate",
     button_secondary_text_color="#16181D", button_secondary_text_color_dark="#16181D",
     button_secondary_border_color="#C9CBC4", button_secondary_border_color_dark="#C9CBC4")
 
+def launch():
+    """Lab: 127.0.0.1 only. Online (GRACE_ONLINE=1): listen on all interfaces, one analysis at a time (CPU host)."""
+    demo = build_ui()
+    demo.queue(default_concurrency_limit=1, max_size=20)
+    demo.launch(server_name="0.0.0.0" if ONLINE else "127.0.0.1", server_port=int(os.environ.get("PORT", 7860)),
+                css=CSS, theme=THEME, js=FORCE_LIGHT_JS, footer_links=[], max_file_size=f"{MAX_MB}mb")
+
+
 if __name__ == "__main__":
-    build_ui().launch(server_name="127.0.0.1", server_port=7860, css=CSS, theme=THEME, js=FORCE_LIGHT_JS,
-                      footer_links=[])
+    launch()

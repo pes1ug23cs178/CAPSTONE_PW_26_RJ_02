@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `s3xx_kd_x1_dfd_s2` (started 12:25), then the **official Celeb-DF switch-over** (re-split, re-evaluate all, tables) and D2 retrained x3 (~10 h).
+- GPU job: **official Celeb-DF switch-over** running (`celebdf_official_prepare` started 13:09), then eval v6 (all models), extras, tables v6, D2 x3 retrain, eval v7, tables v7 (~10 h).
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -113,6 +113,7 @@ See `splits/counts.md` for the full table.
 | S0x seed 1 `s0x_student_dfd_s1` | 0.9872 | 0.9988 (in-domain) | 0.8564 | 0.9705 jpeg:50 (7) | 0.7 |
 | S3xx seed 1 `s3xx_kd_x1_dfd_s1` | 0.9935 | 0.9985 (in-domain) | 0.8705 | 0.9876 jpeg:50 (7) | 0.7 |
 | S0x seed 2 `s0x_student_dfd_s2` | 0.9889 | 0.9958 (in-domain) | 0.8562 | | 0.7 |
+| S3xx seed 2 `s3xx_kd_x1_dfd_s2` | 0.9889 | 0.9982 (in-domain) | 0.8323 | | 0.7 |
 | ~~B2 (collapsed run, superseded by r2)~~ | 0.9987 | 0.9140 | 0.8696 | 0.9988 (2) | 0.92 |
 
 - B1 checks: in-domain 0.9948 (< 0.995 alarm), cross-dataset max 0.910 (< 0.95 alarm). Celeb-DF fakes vs Celeb-real only: 0.911; vs YouTube-real only: 0.881, so no single real group drives the number. Celeb-DF fakes get low probabilities (mean 0.26), so accuracy at the FF++ threshold is 0.71 despite AUC 0.90: a calibration shift across datasets.
@@ -211,4 +212,5 @@ See `splits/counts.md` for the full table.
 - 2026-11-20 12:05 App matched to the template A mock-up and every endpoint checked. Look: white header bar with "How it works" / "What it can't do" links (both scroll to new sections), grey page with white cards, Space Grotesk headings, dark primary buttons, upload + type-of-check in one card, a still from the uploaded video with a "Your video · m:ss" label, next-step buttons inside the "What you can do now" card, softer orange glow, Gradio footer hidden, light theme forced. API endpoints named and tested with gradio_client: /check (videos, image, no-face, no file; wrong file types are refused by the upload filter), /clear, /rescore, /overlay_concept, /overlay_opacity, plus page/config/info routes (all OK). Browser click-through (`scripts/ui_check.py`, Playwright on the installed Edge) passes 14/14 on an FF++ fake (Careful), an FF++ real (Quick) and a Celeb-DF fake: verdict card, 3 clue cards, Save this result downloads the report, technical panel (galleries, concept overlay, switch-off re-score), nav scrolling, Check another file, no horizontal scroll at 390 px, no page errors. Restart issue found and fixed: 8 stale app PowerShell windows held the log file; closed, one window now logs to `runs/_app/app_20261120.log`.
 - 2026-11-20 12:10 S3xx seed 1 done (finished 11:43): FF++ 0.9935, DFD 0.9985 (in-domain), Celeb-DF 0.8705 (interim set). Now running S0x seed 2, then S3xx seed 2, then the official Celeb-DF switch-over.
 - 2026-11-20 12:25 S0x seed 2 done: Celeb-DF 0.8562. **S0x over 3 seeds: Celeb-DF 0.857 (0.860, 0.856, 0.856)** vs S0 (FF++ data) 0.817: DFD data helps the student; the X1 teacher alone (S3x 0.806) does not. ESA Phase-3 report being written (`ESA Report/`, brief in REPORT_PROMPT.md).
+- 2026-11-20 13:09 S3xx seed 2 done: Celeb-DF 0.8323. **S3xx over 3 seeds: 0.848 (0.841, 0.871, 0.832)** vs S0x (same data, no teacher) 0.857: with DFD data in the student set, distillation from X1 adds nothing. Extension 2 complete. Repository published to github.com/pes1ug23cs178/CAPSTONE_PW_26_RJ_02 (history messages cleaned; old-to-new commit IDs in docs/commit_map.csv). Official Celeb-DF switch-over started.
 - 2026-11-20 08:00 Queued extension 2 (data vs teacher for the students): student data = FF++ train + SBI pool + all DFD videos (`cache/adapt/student_x_train.csv`, 126,088 crops, built by `scripts/make_student_x.py`). S0x = no teacher, S3xx = full KD from X1 (cache `cache/teacher_x1x`), 3 seeds each. Compares against S0/S3 (FF++ data) on Celeb-DF. DFD fakes have concept/boundary targets masked like FF++ fakes (checked). `cache_teacher.py` gained `--csv`.

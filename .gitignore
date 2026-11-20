@@ -55,3 +55,6 @@ ESA Report/ppt_build/render/
 ESA Report/ppt_build/tpl/
 ESA Report/ppt_build/*.png
 ESA Report/**/~$*
+
+# generated Hugging Face Space folder (rebuild with scripts/build_space.py)
+deploy/

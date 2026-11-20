@@ -76,10 +76,18 @@ def pose_ok(yaw: float, pitch: float) -> bool:
     return POSE_LIMITS["yaw"][0] <= yaw <= POSE_LIMITS["yaw"][1] and POSE_LIMITS["pitch"][0] <= pitch <= POSE_LIMITS["pitch"][1]
 
 
+def pick_device() -> str:
+    """GRACE_DEVICE=cpu|cuda forces a device (the public CPU deployment sets cpu); otherwise use a GPU if one works."""
+    forced = os.environ.get("GRACE_DEVICE")
+    if forced:
+        return forced
+    return "cuda" if torch.cuda.is_available() and torch.cuda.device_count() > 0 else "cpu"
+
+
 class FaceCropper:
     def __init__(self, device: Optional[str] = None) -> None:
         import face_alignment
-        dev = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        dev = device or pick_device()
         self.fa = face_alignment.FaceAlignment(face_alignment.LandmarksType.TWO_D, device=dev, face_detector="sfd")
 
     def crop(self, frame_rgb: np.ndarray, size: int = 224) -> Optional[np.ndarray]:
@@ -183,11 +191,13 @@ class DeepEngine:
     name = "Deep (final teacher, GPU)"
 
     def __init__(self, run_dir: Path, temperature: float = 1.0) -> None:
+        """run_dir: a run folder holding best.pth, or a checkpoint file (e.g. release/grace_teacher.pth)."""
         import sys
         sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
         from evaluate import load_model_from_ckpt
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model, _ = load_model_from_ckpt(str(Path(run_dir) / "best.pth"), self.device)
+        self.device = torch.device(pick_device())
+        ckpt = Path(run_dir) if Path(run_dir).is_file() else Path(run_dir) / "best.pth"
+        self.model, _ = load_model_from_ckpt(str(ckpt), self.device)
         self.T = float(temperature)
         self.version = Path(run_dir).name
 
