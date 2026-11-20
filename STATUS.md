@@ -3,7 +3,7 @@
 ## Currently running
 
 - Queue runner: `scripts/start_queue.ps1` (detached; restart with `powershell -ExecutionPolicy Bypass -File scripts/start_queue.ps1`). State: `runs/_queue/state.json`, logs: `runs/_queue/<job>.log`, heartbeat: `runs/_queue/heartbeat.txt`.
-- GPU job: `s0x_student_dfd_s1` (started 10:19), then S3xx s1, S0x s2, S3xx s2 (~2.5 h). All runbook tasks are done; these are extra experiments.
+- GPU job: `s3xx_kd_x1_dfd_s1` (started 10:59), then S0x s2, S3xx s2 (~1.5 h). All runbook tasks are done; these are extra experiments.
 - Watch live: `Get-Content runs\_queue\<job>.log -Wait -Tail 20` (queue: `runs\_queue\runner.log`).
 - B1 epoch time with the GPU to itself: ~4 min (198 img/s).
 
@@ -110,6 +110,7 @@ See `splits/counts.md` for the full table.
 | S3x seed 2 `s3x_kd_from_x1_s2` | 0.9856 | 0.8649* | 0.7739 | 0.9486 jpeg:50 (7) | 0.7 |
 | S0x student, no teacher, FF++ + SBI + DFD data `s0x_student_dfd_s42` | 0.9926 | 0.9987 (in-domain) | 0.8602 | 0.9606 jpeg:50 (9) | 0.7 |
 | S3xx student, KD from X1, FF++ + SBI + DFD data `s3xx_kd_x1_dfd_s42` | 0.9939 | 0.9982 (in-domain) | 0.8412 | 0.9793 jpeg:50 (7) | 0.7 |
+| S0x seed 1 `s0x_student_dfd_s1` | 0.9872 | 0.9988 (in-domain) | 0.8564 | 0.9705 jpeg:50 (7) | 0.7 |
 | ~~B2 (collapsed run, superseded by r2)~~ | 0.9987 | 0.9140 | 0.8696 | 0.9988 (2) | 0.92 |
 
 - B1 checks: in-domain 0.9948 (< 0.995 alarm), cross-dataset max 0.910 (< 0.95 alarm). Celeb-DF fakes vs Celeb-real only: 0.911; vs YouTube-real only: 0.881, so no single real group drives the number. Celeb-DF fakes get low probabilities (mean 0.26), so accuracy at the FF++ threshold is 0.71 despite AUC 0.90: a calibration shift across datasets.
@@ -202,4 +203,5 @@ See `splits/counts.md` for the full table.
 - 2026-11-20 08:57 X1 cache over FF++ + SBI + DFD student data built (`cache/teacher_x1x`, 126,088 crops; check 9.5e-06). S0x seed 42 started.
 - 2026-11-20 09:36 S0x seed 42 done: FF++ 0.9926, DFD 0.9987 (in-domain, not a generalisation number), **Celeb-DF 0.8602** vs S0 (FF++ data) 0.817±0.034 and S3x (X1 teacher, FF++ data) 0.806. First seed: adding DFD data to the student helps Celeb-DF (+0.04), the teacher change did not. S3xx seed 42 next.
 - 2026-11-20 10:19 S3xx seed 42 done: FF++ 0.9939, DFD 0.9982 (in-domain), Celeb-DF 0.8412 (S0x seed 42: 0.8602). First seed: with DFD in the student data, KD from X1 again adds nothing on Celeb-DF. Seeds 1/2 next.
+- 2026-11-20 10:59 S0x seed 1 done: FF++ 0.9872, DFD 0.9988 (in-domain), Celeb-DF 0.8564. S0x two seeds: Celeb-DF 0.858 (0.860, 0.856) vs S0 0.817±0.034: the data gain replicates. App UX templates drafted for the user (design canvas, 3 directions); awaiting their choice.
 - 2026-11-20 08:00 Queued extension 2 (data vs teacher for the students): student data = FF++ train + SBI pool + all DFD videos (`cache/adapt/student_x_train.csv`, 126,088 crops, built by `scripts/make_student_x.py`). S0x = no teacher, S3xx = full KD from X1 (cache `cache/teacher_x1x`), 3 seeds each. Compares against S0/S3 (FF++ data) on Celeb-DF. DFD fakes have concept/boundary targets masked like FF++ fakes (checked). `cache_teacher.py` gained `--csv`.
