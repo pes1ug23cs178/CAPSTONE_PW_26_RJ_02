@@ -1,0 +1,65 @@
+name: s3xx_kd_x1_dfd
+parent: s3x_kd_from_x1
+notes: S3 recipe distilled from X1, with DFD added to the student data
+model:
+  backbone: efficientnet_b0
+  num_concepts: 10
+  z_dim: 512
+  head: concept
+  domain:
+    enabled: false
+data:
+  train: cache/adapt/student_x_train.csv
+  val: splits/ffpp_val.csv
+  tests:
+  - splits/ffpp_test.csv
+  - splits/dfd_test.csv
+  - splits/celebdf_test.csv
+  sbi: false
+  cells:
+  - real
+  - sbi
+  - Deepfakes
+  - Face2Face
+  - FaceSwap
+  - DeepFakeDetection
+  cell_weights:
+    real: 3
+    sbi: 3
+    Deepfakes: 1
+    Face2Face: 1
+    FaceSwap: 1
+    DeepFakeDetection: 1
+  augment:
+    flip: 0.0
+    color_jitter: 0.0
+    jpeg_p: 0.0
+    blur_p: 0.0
+  student_degrade: true
+  val_degrade: jpeg:50
+loss:
+  bce: 0.5
+  concept: 0.0
+  map: 0.0
+  w_l1: 0.0001
+  residual: 0.001
+distill:
+  enabled: true
+  cache_dir: cache/teacher_x1x
+  T: 4.0
+  kl: 0.5
+  feat: 1.0
+  concept: 0.5
+  map: 0.5
+optim:
+  lr:
+    backbone: 0.001
+    heads: 0.001
+  weight_decay: 0.01
+  epochs: 15
+  steps_per_epoch: 1500
+  batch_size: 64
+  warmup_epochs: 1
+  ema: 0.999
+  grad_clip: 1.0
+  precision: bf16

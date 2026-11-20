@@ -236,3 +236,26 @@ jobs:
   - name: s3x_kd_from_x1_s2
     cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3x_kd_from_x1.yaml --seed 2
     after: s3x_kd_from_x1_s1
+  # Day 7 extension 2 (added 20 Nov 08:00): data vs teacher for students. Student data = FF++ + SBI + DFD (cache/adapt/student_x_train.csv).
+  # S0x: no teacher; S3xx: distilled from X1 (cache/teacher_x1x). DFD is not held out for these; compare on Celeb-DF.
+  - name: teacher_cache_x1x
+    cmd: python scripts/run_snapshot.py -- "python scripts/make_student_x.py && python scripts/cache_teacher.py --teacher x1_ffpp_dfd_s42_20261119-1056 --csv adapt/student_x_train.csv --out teacher_x1x"
+    after: s3x_kd_from_x1_s2
+  - name: s0x_student_dfd_s42
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s0x_student_dfd.yaml --seed 42
+    after: teacher_cache_x1x
+  - name: s3xx_kd_x1_dfd_s42
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3xx_kd_x1_dfd.yaml --seed 42
+    after: s0x_student_dfd_s42
+  - name: s0x_student_dfd_s1
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s0x_student_dfd.yaml --seed 1
+    after: s3xx_kd_x1_dfd_s42
+  - name: s3xx_kd_x1_dfd_s1
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3xx_kd_x1_dfd.yaml --seed 1
+    after: s0x_student_dfd_s1
+  - name: s0x_student_dfd_s2
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s0x_student_dfd.yaml --seed 2
+    after: s3xx_kd_x1_dfd_s1
+  - name: s3xx_kd_x1_dfd_s2
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3xx_kd_x1_dfd.yaml --seed 2
+    after: s0x_student_dfd_s2

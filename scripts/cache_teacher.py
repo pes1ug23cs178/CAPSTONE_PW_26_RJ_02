@@ -71,10 +71,11 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--teacher", default="auto", help="run folder, run name under runs/, or auto")
     ap.add_argument("--out", default="teacher", help="output folder under cache_root (default cache/teacher)")
+    ap.add_argument("--csv", default="sbi_pool/student_train.csv", help="crops to cache, relative to cache_root")
     args = ap.parse_args()
     paths = load_paths()
     cache = paths["cache_root"]
-    csv = cache / "sbi_pool" / "student_train.csv"
+    csv = cache / args.csv
     if args.teacher == "auto":
         run = pick_teacher()
     else:
