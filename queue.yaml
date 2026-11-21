@@ -289,3 +289,30 @@ jobs:
   - name: make_tables_v7
     cmd: python scripts/run_snapshot.py -- "python scripts/celebdf_official.py sync && python scripts/make_tables.py && python scripts/make_summary.py && python scripts/make_release.py"
     after: final_eval_all_v7
+  # Paper (21 Nov): two more seeds for the single-seed ablation rows C1, C2, G1, G2 so every step of the chain is a
+  # 3-seed mean; then re-evaluate (robustness grid), rebuild tables, and compute bootstrap CIs (scripts/paper_stats.py).
+  - name: paper_c1_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/c1_clip_lora.yaml --seed 1
+  - name: paper_c1_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/c1_clip_lora.yaml --seed 2
+  - name: paper_g2_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/g2_dct.yaml --seed 1
+  - name: paper_g2_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/g2_dct.yaml --seed 2
+  - name: paper_g1_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/g1_concepts.yaml --seed 1
+  - name: paper_g1_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/g1_concepts.yaml --seed 2
+  - name: paper_c2_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/c2_clip_sbi.yaml --seed 1
+  - name: paper_c2_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/c2_clip_sbi.yaml --seed 2
+  - name: final_eval_all_v8
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin b2_swin_dann b2f_swin_dann_fake c1_clip_lora c2_clip_sbi g1_concepts g1r_concepts_res1e2 c2q_clip_sbi_quarter g2_dct g2_fft g3_full a3_linear_head f1_grace_dct f2_grace_pdann s0_student s2_kd_logits s3_kd_full d2_unsup_adapt --seeds 42 1 2
+    after: paper_c2_s2
+  - name: make_tables_v8
+    cmd: python scripts/run_snapshot.py -- "python scripts/celebdf_official.py sync && python scripts/make_tables.py && python scripts/make_summary.py"
+    after: final_eval_all_v8
+  - name: paper_stats
+    cmd: python scripts/run_snapshot.py -- python scripts/paper_stats.py --boot 1000
+    after: make_tables_v8
