@@ -267,13 +267,13 @@ LIT = [
 
 def ch3():
     out = [("chapter", "Literature Review"),
-           ("p", "This chapter reviews the work that shaped the design of GRACE. Each review covers what the paper "
-                 "proposes, how it works, what it showed, and how it relates to this project and the gaps it leaves. "
-                 "Section 3.13 notes other related work, Section 3.14 summarises the reviewed work, and Section 3.15 states the "
-                 "gaps this project addresses.")]
+           ("p", "This chapter reviews the work that shaped the design of GRACE. For each paper, the first paragraph "
+                 "says what it proposes and how it works; the second says what it showed and how it relates to this "
+                 "project, including the gaps it leaves. Section 3.13 notes other related work, Section 3.14 summarises "
+                 "the reviewed work, and Section 3.15 states the gaps this project addresses.")]
     for key, title, intro, method, evalu, rel in LIT:
-        out += [("h2", title), ("h3", "Introduction"), ("p", intro), ("h3", "Characteristics and Method"), ("p", method),
-                ("h3", "Evaluation"), ("p", evalu), ("h3", "Relevance and Gaps"), ("p", rel)]
+        out += [("h2", title), ("p", f"{intro} {method}"),
+                ("p", f"**Findings.** {evalu} **Relevance to GRACE.** {rel}")]
     out += [
         ("h2", "Other Related Work"),
         ("p", "Several other works reviewed in earlier phases inform specific parts of the design. Temporal methods model "
