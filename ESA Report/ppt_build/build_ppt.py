@@ -567,7 +567,7 @@ steps = [("Aug–Sep", "Audit of Phase-2 pipeline; leak found and fixed", "Done"
          ("Oct", "Leak-free splits, fake maker, models coded and tested", "Done"),
          ("Nov", "GPU experiments: 17 models, most with 3 seeds", "Done"),
          ("Nov", "Web app redesigned and fully tested", "Done"),
-         ("Nov", "Phase-3 report (82 pages) and IEEE paper draft", "Done"),
+         ("Nov", "Phase-3 report (76 pages) and IEEE paper draft", "Done"),
          ("21 Nov", "Re-run on the official Celeb-DF test list; final numbers in report", "Done")]
 for i, (when, what, st) in enumerate(steps):
     y = 2.05 + i * 0.75
@@ -577,8 +577,8 @@ for i, (when, what, st) in enumerate(steps):
     text(s, 3.1, y, 6.9, 0.55, [what], size=15, anchor=MSO_ANCHOR.MIDDLE)
     text(s, 10.1, y, 2.5, 0.55, [[(st, {"bold": True, "color": GREEN if st == "Done" else ORANGE})]], size=15,
          anchor=MSO_ANCHOR.MIDDLE)
-notes(s, "Project report: complete (82 pages, all guideline chapters); numbers refresh automatically after the official "
-         "Celeb-DF re-evaluation. Adjust the early months if your records differ.")
+notes(s, "Project report: complete (76 pages, all guideline chapters), with final results on the official "
+         "Celeb-DF test list. Adjust the early months if your records differ.")
 
 s = new("Conclusion and Future Work")
 card(s, 0.7, 2.05, 5.85, 4.65, "What we achieved", [
