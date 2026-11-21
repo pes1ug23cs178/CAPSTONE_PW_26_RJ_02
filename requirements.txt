@@ -18,3 +18,4 @@ scikit-learn==1.8.0
 scipy==1.17.1
 timm==1.0.31
 tqdm==4.67.3
+av==12.3.0  # single-frame H.264 training augmentation (F1h, S3h)

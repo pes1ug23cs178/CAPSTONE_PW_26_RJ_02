@@ -45,6 +45,11 @@ def restore_curve(model, img, real, m, device):
 
 
 def main() -> None:
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--limit", type=int, default=500)
+    ap.add_argument("--out", default="results/explain_restore.csv")
+    args = ap.parse_args()
     device = torch.device("cuda")
     root = load_paths()["data_root"]
     names = {"g3": "final", "b1": "b1_swin", "c1": "c1_clip_lora", "s3": "s3_kd_full"}
@@ -56,7 +61,7 @@ def main() -> None:
     for r in sbi.itertuples():
         if fake_prob(models["g3"], [load_rgb(root / r.frame_path)], device)[0] >= thr:
             keep.append(r)
-        if len(keep) >= 500:
+        if len(keep) >= args.limit:
             break
     print(f"{len(keep)} flagged SBI test images", flush=True)
     rows = []
@@ -80,7 +85,7 @@ def main() -> None:
     tlabel = final_teacher_name().split("_")[0].upper()
     df = pd.DataFrame(rows)
     df["method"] = df["method"].str.replace(r"^G3", tlabel, regex=True)
-    out = REPO_ROOT / "results" / "explain_restore.csv"
+    out = REPO_ROOT / args.out
     df.to_csv(out, index=False)
     print(df.to_string(index=False))
     print(f"wrote {out}")
