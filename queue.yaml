@@ -307,12 +307,55 @@ jobs:
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/c2_clip_sbi.yaml --seed 1
   - name: paper_c2_s2
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/c2_clip_sbi.yaml --seed 2
-  - name: final_eval_all_v8
-    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin b2_swin_dann b2f_swin_dann_fake c1_clip_lora c2_clip_sbi g1_concepts g1r_concepts_res1e2 c2q_clip_sbi_quarter g2_dct g2_fft g3_full a3_linear_head f1_grace_dct f2_grace_pdann s0_student s2_kd_logits s3_kd_full d2_unsup_adapt --seeds 42 1 2
-    after: paper_c2_s2
-  - name: make_tables_v8
-    cmd: python scripts/run_snapshot.py -- "python scripts/celebdf_official.py sync && python scripts/make_tables.py && python scripts/make_summary.py"
-    after: final_eval_all_v8
-  - name: paper_stats
-    cmd: python scripts/run_snapshot.py -- python scripts/paper_stats.py --boot 1000
-    after: make_tables_v8
+  # Weekend plan (21-23 Nov, until Monday morning), all for the paper, in priority order:
+  # (1) fair baselines under our protocol: R1 UnivFD-style frozen-CLIP linear probe, R2 SBI reproduction (EffNet-B4,
+  #     real + SBI only); (2) F1h = F1 + single-frame H.264 training augmentation (CRF 24-38; test CRF 40 unseen);
+  # (3) evaluation v9 + tables + bootstrap CIs + restoration-deletion test + calibration/concept/failure analyses;
+  # (4) seeds 1 and 2 for A3 and G3 (the "concepts help" comparison); (5) S3h student with H.264 inputs; (6) final refresh.
+  - name: paper_r1_s42
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/r1_univfd.yaml --seed 42
+  - name: paper_r1_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/r1_univfd.yaml --seed 1
+  - name: paper_r1_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/r1_univfd.yaml --seed 2
+  - name: paper_r2_s42
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/r2_sbi_effb4.yaml --seed 42
+  - name: paper_r2_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/r2_sbi_effb4.yaml --seed 1
+  - name: paper_r2_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/r2_sbi_effb4.yaml --seed 2
+  - name: paper_f1h_s42
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/f1h_grace_dct_h264.yaml --seed 42
+  - name: paper_f1h_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/f1h_grace_dct_h264.yaml --seed 1
+  - name: paper_f1h_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/f1h_grace_dct_h264.yaml --seed 2
+  - name: final_eval_all_v9
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin b2_swin_dann b2f_swin_dann_fake c1_clip_lora c2_clip_sbi g1_concepts g1r_concepts_res1e2 c2q_clip_sbi_quarter g2_dct g2_fft g3_full a3_linear_head f1_grace_dct f2_grace_pdann s0_student s2_kd_logits s3_kd_full d2_unsup_adapt r1_univfd r2_sbi_effb4 f1h_grace_dct_h264 s3h_kd_full_h264 --seeds 42 1 2
+    after: paper_f1h_s2
+  - name: make_tables_v9
+    cmd: python scripts/run_snapshot.py -- "python scripts/celebdf_official.py sync && python scripts/make_tables.py && python scripts/make_summary.py && python scripts/paper_stats.py --boot 1000 && python scripts/paper_analysis.py"
+    after: final_eval_all_v9
+  - name: explain_restore
+    cmd: python scripts/run_snapshot.py -- python scripts/explain_restore.py
+    after: make_tables_v9
+  - name: paper_a3_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/a3_linear_head.yaml --seed 1
+  - name: paper_a3_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/a3_linear_head.yaml --seed 2
+  - name: paper_g3_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/g3_full.yaml --seed 1
+  - name: paper_g3_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/g3_full.yaml --seed 2
+  - name: paper_s3h_s42
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/s3h_kd_full_h264.yaml --seed 42
+  - name: paper_s3h_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/s3h_kd_full_h264.yaml --seed 1
+  - name: paper_s3h_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/s3h_kd_full_h264.yaml --seed 2
+  - name: final_eval_all_v10
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin b2_swin_dann b2f_swin_dann_fake c1_clip_lora c2_clip_sbi g1_concepts g1r_concepts_res1e2 c2q_clip_sbi_quarter g2_dct g2_fft g3_full a3_linear_head f1_grace_dct f2_grace_pdann s0_student s2_kd_logits s3_kd_full d2_unsup_adapt r1_univfd r2_sbi_effb4 f1h_grace_dct_h264 s3h_kd_full_h264 --seeds 42 1 2
+    after: paper_s3h_s2
+  - name: make_tables_v10
+    cmd: python scripts/run_snapshot.py -- "python scripts/celebdf_official.py sync && python scripts/make_tables.py && python scripts/make_summary.py && python scripts/paper_stats.py --boot 1000 && python scripts/paper_analysis.py"
+    after: final_eval_all_v10

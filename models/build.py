@@ -16,6 +16,10 @@ def build_model(model_cfg: Dict, pretrained: bool = True) -> nn.Module:
             domain_cfg=model_cfg.get("domain"),
             pretrained=pretrained,
         )
+    if backbone == "timm":  # any timm classifier with the B1 head (R2: EfficientNet-B4 for the SBI reproduction)
+        from models.swin import SwinDetector
+        return SwinDetector(backbone_name=model_cfg["timm_name"], feature_norm=model_cfg.get("feature_norm", "layer"),
+                            domain_cfg=model_cfg.get("domain"), pretrained=pretrained)
     if backbone == "efficientnet_b0":
         from models.student import StudentDetector
         return StudentDetector(model_cfg, pretrained=pretrained)

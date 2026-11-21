@@ -68,6 +68,10 @@ def compress_augment(img: np.ndarray, cfg: Dict) -> np.ndarray:
     if random.random() < cfg.get("blur_p", 0.1):
         k = random.choice([3, 5])
         img = cv2.GaussianBlur(img, (k, k), 0)
+    if random.random() < cfg.get("h264_p", 0.0):  # F1h: single-frame H.264, CRF range never reaches the test's 40
+        from data.degrade import h264_frame
+        lo, hi = cfg.get("h264_crf", [24, 38])
+        img = h264_frame(np.ascontiguousarray(img), random.randint(lo, hi))
     return np.ascontiguousarray(img)
 
 

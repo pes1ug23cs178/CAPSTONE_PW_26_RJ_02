@@ -8,6 +8,11 @@ Evaluation (T4.3), selected by code:
 
 Student training (T5.2), applied per sample: clean 0.2, JPEG q20-60 0.35, downscale 0.25-0.5 0.25,
 JPEG q30-50 after downscale 0.5 0.2.
+With h264=True (S3h): a quarter of the degraded samples use single-frame H.264 (CRF 24-38) instead.
+
+Training augmentation h264_frame(img, crf) (F1h, S3h): one image encoded as a single H.264 frame with libx264 via
+PyAV and decoded back. It is intra-only (no motion prediction), so it approximates, but is not the same as, the
+video-level h264:crf evaluation; CRF 40 is never used in training, so the strongest test level stays unseen.
 """
 from __future__ import annotations
 
@@ -54,8 +59,11 @@ class ImageDegrade:
 
 
 class StudentDegrade:
+    def __init__(self, h264: bool = False) -> None:
+        self.h264 = h264
+
     def __call__(self, img: np.ndarray) -> np.ndarray:
-        return student_degrade(img)
+        return student_degrade(img, self.h264)
 
 
 def image_degrade_fn(spec: Optional[str]) -> Optional[Callable[[np.ndarray], np.ndarray]]:
@@ -67,8 +75,26 @@ def image_degrade_fn(spec: Optional[str]) -> Optional[Callable[[np.ndarray], np.
     raise ValueError(f"Unknown degradation {spec!r}")
 
 
-def student_degrade(img: np.ndarray) -> np.ndarray:
+def h264_frame(img: np.ndarray, crf: int) -> np.ndarray:
+    """Encode one RGB uint8 image (even height/width) as a single libx264 frame and decode it back."""
+    import av
+    h, w = img.shape[:2]
+    enc = av.CodecContext.create("libx264", "w")
+    enc.width, enc.height, enc.pix_fmt = w, h, "yuv420p"
+    enc.options = {"crf": str(int(crf)), "preset": "veryfast", "tune": "zerolatency"}
+    packets = list(enc.encode(av.VideoFrame.from_ndarray(np.ascontiguousarray(img), format="rgb24"))) + list(enc.encode(None))
+    dec = av.CodecContext.create("h264", "r")
+    frames = []
+    for pkt in packets:
+        frames += dec.decode(pkt)
+    frames += dec.decode(None)
+    return frames[0].to_ndarray(format="rgb24") if frames else img
+
+
+def student_degrade(img: np.ndarray, h264: bool = False) -> np.ndarray:
     r = random.random()
+    if h264 and r >= 0.2 and random.random() < 0.25:
+        return h264_frame(img, random.randint(24, 38))
     if r < 0.2:
         return img
     if r < 0.55:

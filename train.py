@@ -56,7 +56,7 @@ def make_train_loader(cfg: Dict, seed: int, num_workers: int) -> (DataLoader, Ce
     degrade_fn = None
     if data.get("student_degrade"):
         from data.degrade import StudentDegrade
-        degrade_fn = StudentDegrade()
+        degrade_fn = StudentDegrade(h264=bool(data.get("student_h264")))
     ds = FaceFrameDataset(REPO_ROOT / data["train"], train=True, augment_cfg=data.get("augment"),
                           sbi_fn=build_sbi_fn(cfg), degrade_fn=degrade_fn, domain_mode=data.get("domain_mode", "method"))
     sampler = CellBalancedBatchSampler(ds.cell_indices(data["cells"]), cfg["optim"]["batch_size"],

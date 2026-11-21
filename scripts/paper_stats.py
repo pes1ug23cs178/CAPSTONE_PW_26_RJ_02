@@ -24,10 +24,13 @@ from scripts.eval_all import resolve_runs  # noqa: E402
 from utils.config import REPO_ROOT  # noqa: E402
 
 MODELS = {"b1_swin": "B1", "c1_clip_lora": "C1", "c2_clip_sbi": "C2", "g1_concepts": "G1", "g2_dct": "G2",
-          "f1_grace_dct": "F1", "s0_student": "S0", "s3_kd_full": "S3"}
+          "f1_grace_dct": "F1", "s0_student": "S0", "s3_kd_full": "S3", "r1_univfd": "R1", "r2_sbi_effb4": "R2",
+          "f1h_grace_dct_h264": "F1h", "s3h_kd_full_h264": "S3h", "g3_full": "G3", "a3_linear_head": "A3"}
 PAIRS = [("b1_swin", "c1_clip_lora"), ("c1_clip_lora", "c2_clip_sbi"), ("c2_clip_sbi", "g1_concepts"),
          ("g1_concepts", "g2_dct"), ("g2_dct", "f1_grace_dct"), ("c1_clip_lora", "f1_grace_dct"),
-         ("b1_swin", "f1_grace_dct"), ("s0_student", "s3_kd_full"), ("b1_swin", "s3_kd_full")]
+         ("b1_swin", "f1_grace_dct"), ("s0_student", "s3_kd_full"), ("b1_swin", "s3_kd_full"),
+         ("r1_univfd", "f1_grace_dct"), ("r2_sbi_effb4", "f1_grace_dct"), ("r1_univfd", "c1_clip_lora"),
+         ("f1_grace_dct", "f1h_grace_dct_h264"), ("s3_kd_full", "s3h_kd_full_h264"), ("a3_linear_head", "g3_full")]
 SPLITS = ["dfd_test", "celebdf_test"]
 DEGRADES = ["", "_jpeg30", "_h26440"]
 

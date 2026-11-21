@@ -1,0 +1,45 @@
+name: r2_sbi_effb4
+parent: null
+notes: 'Baseline R2 (SBI, Shiohara and Yamasaki 2022), reproduced under our protocol:
+  EfficientNet-B4, trained on FF++ real crops + self-blended images only (no FF++
+  fakes); 224 px and AdamW instead of 380 px and SAM'
+model:
+  backbone: timm
+  timm_name: efficientnet_b4
+  feature_norm: layer
+  domain:
+    enabled: false
+data:
+  train: splits/ffpp_train.csv
+  val: splits/ffpp_val.csv
+  tests:
+  - splits/ffpp_test.csv
+  - splits/dfd_test.csv
+  - splits/celebdf_test.csv
+  sbi: true
+  cells:
+  - real
+  - sbi
+  cell_weights:
+    real: 1
+    sbi: 1
+  augment:
+    flip: 0.5
+    color_jitter: 0.1
+    jpeg_p: 0.3
+    jpeg_q:
+    - 60
+    - 100
+    blur_p: 0.1
+optim:
+  lr:
+    backbone: 0.0002
+    heads: 0.001
+  weight_decay: 0.05
+  epochs: 10
+  steps_per_epoch: 1500
+  batch_size: 32
+  warmup_epochs: 1
+  ema: 0.999
+  grad_clip: 1.0
+  precision: bf16

@@ -27,7 +27,11 @@ LABEL = {"b1_swin": "B1 Swin-B", "b2_swin_dann": "B2 Swin-B + DANN (real as a do
          "f1_grace_dct": "F1 G2-DCT + residual 1e-2 + hard-val selection",
          "f2_grace_pdann": "F2 F1 + DANN/MMD on patch features",
          "s0_student": "S0 student, no teacher", "s2_kd_logits": "S2 student, logit KD", "s3_kd_full": "S3 student, full KD",
-         "d2_unsup_adapt": "D2 G3 + unsupervised adaptation to Celeb-DF", "x1_ffpp_dfd": "X1 G3 trained on FF++ + DFD (DFD not a test set)"}
+         "d2_unsup_adapt": "D2 G3 + unsupervised adaptation to Celeb-DF", "x1_ffpp_dfd": "X1 G3 trained on FF++ + DFD (DFD not a test set)",
+         "r1_univfd": "R1 baseline: frozen CLIP linear probe (UnivFD-style)",
+         "r2_sbi_effb4": "R2 baseline: SBI reproduction (EfficientNet-B4, real + SBI only)",
+         "f1h_grace_dct_h264": "F1h F1 + H.264 training augmentation",
+         "s3h_kd_full_h264": "S3h S3 + H.264 in student inputs"}
 
 
 def fmt(vals) -> str:
@@ -92,7 +96,8 @@ def main() -> None:
             "", f"G2-fft is compared with G1; A3 is compared with G3; F1 with G2-DCT; F2 with F1. Final teacher (picked on val): {LABEL.get(final, final)}.", ""]
 
     rob = pd.read_csv(RES / "robustness.csv") if (RES / "robustness.csv").exists() else pd.DataFrame()
-    rmodels = [m for m in dict.fromkeys(["b1_swin", "c1_clip_lora", "g3_full", final, "s0_student", "s2_kd_logits", "s3_kd_full"]) if m in models]
+    rmodels = [m for m in dict.fromkeys(["b1_swin", "r1_univfd", "r2_sbi_effb4", "c1_clip_lora", "g3_full", final, "f1h_grace_dct_h264",
+                                       "s0_student", "s2_kd_logits", "s3_kd_full", "s3h_kd_full_h264"]) if m in models]
     out += ["## 3. Robustness (cross-dataset video AUC)", "", md_table(
         ["Model", "clean", "jpeg:30", "down:0.25", "h264:40"],
         [[LABEL[m]] + [fmt(cross(m, degrade=d)) for d in ("clean", "jpeg:30", "down:0.25", "h264:40")] for m in rmodels]),
@@ -101,7 +106,7 @@ def main() -> None:
     eff = pd.read_csv(RES / "efficiency.csv").set_index("model") if (RES / "efficiency.csv").exists() else pd.DataFrame()
     agr = pd.read_csv(RES / "agreement.csv") if (RES / "agreement.csv").exists() else pd.DataFrame()
     srows = []
-    for m in [x for x in dict.fromkeys(["b1_swin", final, "s0_student", "s2_kd_logits", "s3_kd_full"]) if x in models]:
+    for m in [x for x in dict.fromkeys(["b1_swin", final, "s0_student", "s2_kd_logits", "s3_kd_full", "s3h_kd_full_h264"]) if x in models]:
         e = eff.loc[m] if m in eff.index else {}
         a = agr[(agr["student"] == m) & (agr["degrade"] == "clean")] if len(agr) else pd.DataFrame()
         srows.append([LABEL[m], e.get("params_m", "–"), e.get("gflops", "–"), e.get("gpu_fps_bs64", "–"),

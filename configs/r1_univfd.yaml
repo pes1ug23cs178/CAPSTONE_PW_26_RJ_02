@@ -1,0 +1,45 @@
+name: r1_univfd
+parent: c1_clip_lora
+notes: 'Baseline R1 (UnivFD-style, Ojha et al. 2023): frozen CLIP ViT-L/14, linear
+  probe on the cls token; same data and protocol as C1'
+model:
+  backbone: clip_vitl14_frozen
+  freq_branch: none
+  fusion: none
+  head: linear
+  domain:
+    enabled: false
+  grad_checkpointing: false
+  save_trainable_only: true
+data:
+  train: splits/ffpp_train.csv
+  val: splits/ffpp_val.csv
+  tests:
+  - splits/ffpp_test.csv
+  - splits/dfd_test.csv
+  - splits/celebdf_test.csv
+  sbi: false
+  cells:
+  - real
+  - Deepfakes
+  - Face2Face
+  - FaceSwap
+  augment:
+    flip: 0.5
+    color_jitter: 0.1
+    jpeg_p: 0.3
+    jpeg_q:
+    - 60
+    - 100
+    blur_p: 0.1
+optim:
+  lr:
+    heads: 0.001
+  weight_decay: 0.05
+  epochs: 12
+  steps_per_epoch: 1500
+  batch_size: 32
+  warmup_epochs: 1
+  ema: 0.999
+  grad_clip: 1.0
+  precision: bf16
