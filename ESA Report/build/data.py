@@ -96,7 +96,8 @@ R = Results()
 
 def cdf_note():
     if R.cdf_mode == "official":
-        return "Celeb-DF v2 numbers use the official 518-video test list."
+        return ("Celeb-DF v2 numbers use the official test list (List_of_testing_videos.txt): 516 of its 518 videos, "
+                "the two others having no face crops on disk.")
     return ("Celeb-DF v2 numbers in this version use the interim 518-video test set with the official composition "
             "(108 Celeb-real, 70 YouTube-real, 340 Celeb-synthesis); the official list was received on 20 November 2026 "
             "and the re-evaluation on it is in progress.")

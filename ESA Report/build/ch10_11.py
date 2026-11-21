@@ -13,7 +13,9 @@ def _clean(rows):
 
 
 def _x1_robustness():
-    x1 = pd.read_csv(RES / "robustness_x1.csv")
+    extra = RES / "robustness_extra.csv"  # official Celeb-DF list (written by eval_extras_official)
+    x1 = pd.read_csv(extra) if extra.exists() else pd.read_csv(RES / "robustness_x1.csv")
+    x1 = x1[x1["model"].str.startswith("x1_ffpp_dfd")]
     rob = pd.read_csv(RES / "robustness.csv")
     f1 = rob[rob["model"].str.startswith("f1_grace_dct")]
     rows = []

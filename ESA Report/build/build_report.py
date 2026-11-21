@@ -218,19 +218,33 @@ def assemble():
     ph = next(p for p in doc.paragraphs if p.text == "FRONT_MATTER_PLACEHOLDER")
     ph._p.getparent().remove(ph._p)
     cp = doc.core_properties
-    cp.author = cp.last_modified_by = "Deepak S N"
+    cp.author = "Deepak S N"
     cp.title, cp.subject = TITLE, "UE23CS441A Capstone Project Phase-3 report, PW26_RJ_02"
     cp.comments = ""
     out = OUT / f"{NAME}.docx"
     doc.save(out)
+    set_author(out)
     return out, rep, words
 
 
-def set_author(docx):
-    """Word stamps its own user as last editor; put the team member back after the field update."""
-    d = Document(docx)
-    d.core_properties.last_modified_by = "Deepak S N"
-    d.save(docx)
+def set_author(docx, name="Deepak S N"):
+    """Set the 'last modified by' field directly in docProps/core.xml (python-docx writes this field in the wrong
+    namespace, which makes Word report the file as corrupted)."""
+    import re
+    import zipfile
+    src = Path(docx)
+    tmp = src.with_suffix(".tmp.docx")
+    with zipfile.ZipFile(src) as zin, zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+        for item in zin.infolist():
+            data = zin.read(item.filename)
+            if item.filename == "docProps/core.xml":
+                x = data.decode("utf-8")
+                x = re.sub(r'<cp:lastModifiedBy xmlns:cp="[^"]*custom-properties">.*?</cp:lastModifiedBy>', "", x)
+                x = re.sub(r"<cp:lastModifiedBy\s*/>|<cp:lastModifiedBy>.*?</cp:lastModifiedBy>",
+                           f"<cp:lastModifiedBy>{name}</cp:lastModifiedBy>", x, count=1)
+                data = x.encode("utf-8")
+            zout.writestr(item, data)
+    tmp.replace(src)
 
 
 PS = r"""

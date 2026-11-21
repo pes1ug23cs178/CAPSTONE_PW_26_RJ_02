@@ -40,21 +40,20 @@ Celeb-DF. ± is the standard deviation over 3 random seeds.
 
 | Model | FF++ test | DFD (unseen) | Celeb-DF (unseen) | Cross-dataset |
 | --- | --- | --- | --- | --- |
-| B1 Swin-B baseline (Phase-2 backbone) | 0.997 ± 0.002 | 0.903 ± 0.016 | 0.889 ± 0.009 | 0.896 ± 0.008 |
-| C1 CLIP ViT-L/14 + LoRA | 1.000 | 0.943 | 0.936 | 0.939 |
-| G1 + 10-clue concept bottleneck | 1.000 | 0.972 | 0.911 | 0.941 |
-| G2 + DCT branch, gated fusion | 1.000 | 0.974 | 0.922 | 0.948 |
-| **F1 final teacher** (≈80% of each decision explained by clues) | 0.997 ± 0.003 | 0.951 ± 0.003 | 0.901 ± 0.014 | **0.926 ± 0.008** |
-| S3 student (4.7 M params, CPU) | 0.978 ± 0.005 | 0.844 ± 0.011 | 0.808 ± 0.021 | 0.826 ± 0.010 |
-| X1 = F1 recipe trained on FF++ + DFD | 0.998 ± 0.001 | (in training) | **0.959 ± 0.007** | – |
+| B1 Swin-B baseline (Phase-2 backbone) | 0.997 ± 0.002 | 0.903 ± 0.016 | 0.805 ± 0.013 | 0.854 ± 0.010 |
+| C1 CLIP ViT-L/14 + LoRA | 1.000 | 0.943 | 0.886 | 0.914 |
+| G1 + 10-clue concept bottleneck | 1.000 | 0.972 | 0.871 | 0.922 |
+| G2 + DCT branch, gated fusion | 1.000 | 0.974 | 0.885 | 0.930 |
+| **F1 final teacher** (≈80% of each decision explained by clues) | 0.997 ± 0.003 | 0.951 ± 0.003 | 0.878 ± 0.013 | **0.914 ± 0.008** |
+| S3 student (4.7 M params, CPU) | 0.978 ± 0.005 | 0.844 ± 0.011 | 0.765 ± 0.020 | 0.804 ± 0.006 |
+| X1 = F1 recipe trained on FF++ + DFD | 0.998 ± 0.001 | (in training) | **0.944 ± 0.004** | – |
 
-The Celeb-DF numbers above use an interim 518-video test set with the official composition. The official
-`List_of_testing_videos.txt` was added on 20 Nov 2026, and every model is being re-evaluated on it. All tables in
+Celeb-DF uses the official test list (`List_of_testing_videos.txt`; 516 of its 518 videos have face crops). All tables in
 `results/` are regenerated automatically from the run folders.
 
 **Other findings**
 
-- **Compression:** at JPEG quality 30, F1 keeps a cross-dataset AUC of 0.92, while the Swin-B baseline falls to 0.82.
+- **Compression:** at JPEG quality 30, F1 keeps a cross-dataset AUC of 0.90, while the Swin-B baseline falls to 0.78.
   Very strong H.264 re-encoding (CRF 40) is still hard for every model (about 0.64).
 - **Explanations:** GRACE's clue maps point at the edited region 94% of the time. Grad-CAM on Swin-B manages 16%,
   and a random map 25%.
@@ -63,7 +62,7 @@ The Celeb-DF numbers above use an interim 518-video test set with the official c
   - a global FFT branch;
   - unsupervised adaptation to Celeb-DF;
   - distillation, which did not raise the student's clean accuracy (it transfers the explanations instead).
-- **Biggest lever:** more varied labelled data. Adding DFD to training raised Celeb-DF AUC from 0.90 to 0.96.
+- **Biggest lever:** more varied labelled data. Adding DFD to training raised Celeb-DF AUC from 0.88 to 0.94.
 
 ## Evaluation integrity
 

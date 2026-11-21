@@ -477,7 +477,7 @@ card(s, 8.9, 2.1, 3.8, 4.6, "Strategy", [
 s = new("Results: Accuracy on Unseen Videos")
 models = [("B1 Swin-B\n(Phase 2 type)", b1x), ("C1 CLIP\n+ LoRA", c1x), ("G2 + clues\n+ DCT", g2x), ("F1 final\nmodel", f1x)]
 ch = chart_bar(s, 0.6, 2.0, 7.4, 4.75, [m for m, _ in models], [("Cross-dataset AUC", [x for _, x in models])],
-               [ORANGE], title="Mean AUC on DFD and Celeb-DF (unseen)", vmin=0.85, vmax=0.97, fmt="0.000")
+               [ORANGE], title="Mean AUC on DFD and Celeb-DF (unseen)", vmin=0.80, vmax=0.95, fmt="0.000")
 pts = ch.plots[0].series[0].points
 pts[0].format.fill.solid(); pts[0].format.fill.fore_color.rgb = GREY
 pts[3].format.fill.solid(); pts[3].format.fill.fore_color.rgb = RUST
@@ -531,8 +531,9 @@ stat(s, 3.8, 2.1, 2.9, f"{eff.loc['s3_kd_full', 'cpu_onnx_latency_ms_bs1']:.1f} 
 stat(s, 6.9, 2.1, 2.9, "65×", "smaller than the teacher", color=BLUE, fill=TINT2)
 stat(s, 10.0, 2.1, 2.65, f"{v('S3', 'Cross-dataset'):.2f}", "AUC on unseen videos")
 text(s, 0.7, 4.0, 12.0, 2.7, [
-    [("Honest finding: ", {"bold": True, "color": RUST}), ("training with the teacher did not make the student more "
-      f"accurate (no-teacher student {s0c:.3f} vs {s3c:.3f} on Celeb-DF, 3 seeds each).", {})],
+    [("Honest finding: ", {"bold": True, "color": RUST}), ("on unseen videos the teacher-trained student is about as "
+      f"accurate as one trained without a teacher ({v('S3', 'Cross-dataset'):.3f} vs {v('S0', 'Cross-dataset'):.3f}; "
+      f"Celeb-DF {s3c:.3f} vs {s0c:.3f}; 3 seeds each).", {})],
     [("What the teacher does give: ", {"bold": True, "color": RUST}), ("explanations that match the teacher's and steadier "
       "results across runs.", {})],
     [("What does help the student: ", {"bold": True, "color": RUST}), (f"more varied data (with DFD: {s0xc:.3f}); a better "
@@ -567,7 +568,7 @@ steps = [("Aug–Sep", "Audit of Phase-2 pipeline; leak found and fixed", "Done"
          ("17–23 Nov", "7-day GPU sprint: 17 models, most with 3 seeds", "Done"),
          ("Nov", "Web app redesigned and fully tested", "Done"),
          ("Nov", "Phase-3 report (82 pages) and IEEE paper draft", "Done"),
-         ("Now", "Re-run on the official Celeb-DF test list; final numbers", "In progress")]
+         ("21 Nov", "Re-run on the official Celeb-DF test list; final numbers in report", "Done")]
 for i, (when, what, st) in enumerate(steps):
     y = 2.05 + i * 0.75
     c = s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(0.8), Inches(y + 0.1), Inches(0.35), Inches(0.35))
@@ -612,7 +613,7 @@ card(s, 0.7, 2.05, 5.85, 4.65, "Draft status", [
     "Title: GRACE: Generalizable, Robust and Concept-Explainable Deepfake Detection",
     "IEEE conference format (LaTeX / Overleaf)",
     "Method, protocol and leakage audit written",
-    "To do: insert final results on the official Celeb-DF list",
+    "Final results on the official Celeb-DF list ready to insert",
     "Status: ~80% complete"], size=14)
 card(s, 6.85, 2.05, 5.85, 4.65, "Target venues (to finalise with guide)", [
     "CVPR 2027 Workshop on deepfake / media forensics", "IEEE ICIP 2027 (image processing)",
