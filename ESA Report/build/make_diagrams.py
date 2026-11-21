@@ -75,7 +75,7 @@ def context_deployment():
     s = box(ax, 36, 14, 24, 22, "Leak-free splits", ["official FF++ split", "official Celeb-DF test list", "DFD test only",
                                                       "overlap tests (pytest)"], "orange")
     t = box(ax, 69, 14, 26, 22, "Training", ["train.py (teachers)", "distill.py (students)", "self-blended images",
-                                             "queue_runner.py, 24/7"], "orange")
+                                             "queue_runner.py (job queue)"], "orange")
     e = box(ax, 104, 14, 24, 22, "Evaluation", ["evaluate.py, eval_all.py", "3 test sets x 10", "degradations, XAI metrics",
                                                 "calibration"], "orange")
     rel = box(ax, 136, 14, 22, 22, "Reporting", ["tables.md, summary.md", "figures", "release package",

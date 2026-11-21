@@ -22,8 +22,8 @@ def ch4():
     return [
         ("chapter", "Project Requirements Specification"),
         ("p", "This chapter specifies the requirements of the GRACE system in the style of a software requirements "
-              "specification. The requirements were fixed at the start of Phase 3 and refined during the experimental "
-              "sprint; the last column of each requirement table records how the requirement was verified."),
+              "specification. The requirements were fixed at the start of Phase 3 and refined during development; "
+              "the last column of each requirement table records how the requirement was verified."),
         ("h2", "Introduction"),
         ("h3", "Purpose"),
         ("p", "The purpose of the system is to detect manipulated faces in images and short videos, to explain each "
@@ -72,8 +72,7 @@ def ch4():
         ("bul", [
             "Test data may never influence training or model selection; all choices use FF++ validation data.",
             "Datasets are licensed for research use, are read-only, and are never redistributed or uploaded.",
-            "The experimental phase had a fixed budget of one GPU for seven days, so every run had to be scheduled and "
-            "logged automatically.",
+            "GPU time in the lab was limited, so every run had to be scheduled and logged automatically.",
             "The application must process uploads locally; no media leaves the machine.",
         ]),
         ("h3", "Assumptions and Dependencies"),
@@ -422,7 +421,7 @@ def ch7():
               "of the code before it starts, so later edits cannot change a running experiment. It trains or evaluates "
               "one configuration with one seed and appends a row to experiments.csv with the commit, seed, GPU hours, "
               "best epoch and test results. A failed job is marked as such, its dependants are blocked, and the queue "
-              "continues with independent work, which kept the GPU busy around the clock during the sprint. Tables and "
+              "continues with independent work, so experiments ran unattended without wasting GPU time. Tables and "
               "figures are generated from the result files by scripts, never typed by hand."),
         ("fig", "workflow", FIG / "sys_experiment_workflow.png", "Experiment workflow from queue to tables and release.", 16.5),
     ]

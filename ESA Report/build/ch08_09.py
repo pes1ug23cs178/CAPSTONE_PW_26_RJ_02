@@ -301,10 +301,10 @@ def ch9():
           ["Browser test (Playwright, Edge)", "14 checks on 3 videos, both check types", "14 / 14 pass"]],
          [5.0, 8.4, 3.6]),
         ("h2", "Execution of the Experiments"),
-        ("p", f"The experiments ran on one NVIDIA RTX 4500 Ada GPU during a seven-day sprint (17–23 November 2026), "
-              f"followed by extra seeds and experiments. In total {n_runs} training runs were logged in experiments.csv, "
+        ("p", f"The experiments ran on one NVIDIA RTX 4500 Ada GPU in the department lab in November 2026, "
+              f"including the extra seeds and experiments. In total {n_runs} training runs were logged in experiments.csv, "
               f"using about {gpu_h:.0f} GPU hours. A teacher run took about 1.8–1.9 GPU hours, a Swin-B run about 0.8 h "
-              f"and a student run about 0.7 h. The job queue ran around the clock; failed jobs were diagnosed, "
+              f"and a student run about 0.7 h. The job queue ran unattended; failed jobs were diagnosed, "
               f"fixed and re-queued under a new name, so every result can be traced to the exact code that produced "
               f"it."),
     ]

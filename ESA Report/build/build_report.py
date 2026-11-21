@@ -90,6 +90,34 @@ def page_break_before(p):
     p.paragraph_format.page_break_before = True
 
 
+def _is_blank(el):
+    """An empty paragraph: no text, no picture, no field, no break."""
+    if el.tag != qn("w:p"):
+        return False
+    if "".join(el.itertext()).strip():
+        return False
+    return not (el.xpath(".//w:drawing") or el.xpath(".//w:fldChar") or el.xpath(".//w:br") or el.xpath(".//w:sectPr"))
+
+
+def drop_trailing_blanks(doc, heads):
+    """The template ends each part with runs of empty lines; with the next heading starting a new page they spill
+    onto an extra, blank page. Remove empty paragraphs right before such a heading and at the end of the body."""
+    body = doc.element.body
+    head_els = {p._p for p in doc.paragraphs if p.text.strip() in heads}
+    kids = list(body)
+    for i, el in enumerate(kids):
+        if el in head_els:
+            j = i - 1
+            while j >= 0 and _is_blank(kids[j]):
+                body.remove(kids[j])
+                j -= 1
+    kids = [k for k in body if k.tag != qn("w:sectPr")]
+    for el in reversed(kids):
+        if not _is_blank(el):
+            break
+        body.remove(el)
+
+
 def fill_cover():
     doc = Document(TPL / "Page 1-2.docx")
     for p in all_paragraphs(doc):
@@ -147,6 +175,7 @@ def fill_front():
     for p in doc.paragraphs:
         if p.text.strip() in heads:
             page_break_before(p)
+    drop_trailing_blanks(doc, heads)
     # abstract text
     absp = next(p for p in doc.paragraphs if "Write the Abstract" in p.text)
     paras = abstract()
@@ -254,6 +283,7 @@ $w.Visible = $false
 $w.DisplayAlerts = 0
 try {
   $d = $w.Documents.Open('%DOCX%')
+  foreach ($s in @(-20, -21)) { $st = $d.Styles.Item($s); $st.ParagraphFormat.SpaceAfter = 3 }
   $d.Repaginate()
   $d.Fields.Update() | Out-Null
   foreach ($t in $d.TablesOfContents) { $t.Update() }

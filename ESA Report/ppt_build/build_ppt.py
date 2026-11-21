@@ -403,7 +403,7 @@ table(s, 0.7, 2.1, 11.95, [
     ["Small student", "timm EfficientNet-B0, ONNX", "4.7 M-parameter copy trained on compressed frames"],
     ["Evaluation", "scikit-learn, matplotlib", "AUC on 3 test sets × 10 compression levels, explanation scores"],
     ["Web app", "Gradio 6, ONNX Runtime", "Upload → verdict, clues, report; API endpoints"],
-    ["Automation", "Job queue, git, pytest", "Ran 24/7, logged every run with its code version and seed"],
+    ["Automation", "Job queue, git, pytest", "Ran unattended, logged every run with its code version and seed"],
 ], [2.6, 3.4, 5.95], size=14, row_h=0.56)
 
 s = new("Training: Teacher and Small Student")
@@ -565,7 +565,7 @@ for i, (h, b) in enumerate([
 s = new("Timeline – Update on Tasks")
 steps = [("Aug–Sep", "Audit of Phase-2 pipeline; leak found and fixed", "Done"),
          ("Oct", "Leak-free splits, fake maker, models coded and tested", "Done"),
-         ("17–23 Nov", "7-day GPU sprint: 17 models, most with 3 seeds", "Done"),
+         ("Nov", "GPU experiments: 17 models, most with 3 seeds", "Done"),
          ("Nov", "Web app redesigned and fully tested", "Done"),
          ("Nov", "Phase-3 report (82 pages) and IEEE paper draft", "Done"),
          ("21 Nov", "Re-run on the official Celeb-DF test list; final numbers in report", "Done")]

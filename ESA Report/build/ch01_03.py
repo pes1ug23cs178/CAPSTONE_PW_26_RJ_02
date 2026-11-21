@@ -136,7 +136,7 @@ def ch2():
             "Deepfakes, Face2Face and FaceSwap manipulations (NeuralTextures and FaceShifter are absent).",
             "All selection decisions (checkpoints, thresholds, the choice of final model) use FF++ validation data only. "
             "Test sets are used once, for reporting.",
-            "Compute budget: one workstation GPU (NVIDIA RTX 4500 Ada, 24 GB) over a seven-day experimental sprint.",
+            "Compute: one workstation GPU (NVIDIA RTX 4500 Ada, 24 GB) in the department lab.",
             "Licensed datasets are used only as provided to the team and are never redistributed.",
         ]),
         ("h2", "Success Criteria"),
