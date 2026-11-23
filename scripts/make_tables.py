@@ -31,7 +31,8 @@ LABEL = {"b1_swin": "B1 Swin-B", "b2_swin_dann": "B2 Swin-B + DANN (real as a do
          "r1_univfd": "R1 baseline: frozen CLIP linear probe (UnivFD-style)",
          "r2_sbi_effb4": "R2 baseline: SBI reproduction (EfficientNet-B4, real + SBI only)",
          "f1h_grace_dct_h264": "F1h F1 + H.264 training augmentation",
-         "s3h_kd_full_h264": "S3h S3 + H.264 in student inputs"}
+         "s3h_kd_full_h264": "S3h S3 + H.264 in student inputs",
+         "s3hh_kd_f1h_h264": "S3hh S3h distilled from F1h"}
 
 
 def fmt(vals) -> str:
@@ -97,7 +98,7 @@ def main() -> None:
 
     rob = pd.read_csv(RES / "robustness.csv") if (RES / "robustness.csv").exists() else pd.DataFrame()
     rmodels = [m for m in dict.fromkeys(["b1_swin", "r1_univfd", "r2_sbi_effb4", "c1_clip_lora", "g3_full", final, "f1h_grace_dct_h264",
-                                       "s0_student", "s2_kd_logits", "s3_kd_full", "s3h_kd_full_h264"]) if m in models]
+                                       "s0_student", "s2_kd_logits", "s3_kd_full", "s3h_kd_full_h264", "s3hh_kd_f1h_h264"]) if m in models]
     out += ["## 3. Robustness (cross-dataset video AUC)", "", md_table(
         ["Model", "clean", "jpeg:30", "down:0.25", "h264:40"],
         [[LABEL[m]] + [fmt(cross(m, degrade=d)) for d in ("clean", "jpeg:30", "down:0.25", "h264:40")] for m in rmodels]),
@@ -106,7 +107,7 @@ def main() -> None:
     eff = pd.read_csv(RES / "efficiency.csv").set_index("model") if (RES / "efficiency.csv").exists() else pd.DataFrame()
     agr = pd.read_csv(RES / "agreement.csv") if (RES / "agreement.csv").exists() else pd.DataFrame()
     srows = []
-    for m in [x for x in dict.fromkeys(["b1_swin", final, "s0_student", "s2_kd_logits", "s3_kd_full", "s3h_kd_full_h264"]) if x in models]:
+    for m in [x for x in dict.fromkeys(["b1_swin", final, "s0_student", "s2_kd_logits", "s3_kd_full", "s3h_kd_full_h264", "s3hh_kd_f1h_h264"]) if x in models]:
         e = eff.loc[m] if m in eff.index else {}
         a = agr[(agr["student"] == m) & (agr["degrade"] == "clean")] if len(agr) else pd.DataFrame()
         srows.append([LABEL[m], e.get("params_m", "–"), e.get("gflops", "–"), e.get("gpu_fps_bs64", "–"),

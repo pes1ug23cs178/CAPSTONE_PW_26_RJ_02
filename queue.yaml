@@ -359,3 +359,21 @@ jobs:
   - name: make_tables_v10
     cmd: python scripts/run_snapshot.py -- "python scripts/celebdf_official.py sync && python scripts/make_tables.py && python scripts/make_summary.py && python scripts/paper_stats.py --boot 1000 && python scripts/paper_analysis.py"
     after: final_eval_all_v10
+  # Added 23 Nov 12:50: does an H.264-robust teacher (F1h) give an H.264-robust student? Separate cache, F1 cache untouched.
+  - name: teacher_cache_f1h
+    cmd: python scripts/run_snapshot.py -- python scripts/cache_teacher.py --teacher f1h_grace_dct_h264_s42_20261122-0545 --out teacher_f1h
+  - name: paper_s3hh_s42
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/s3hh_kd_f1h_h264.yaml --seed 42
+    after: teacher_cache_f1h
+  - name: paper_s3hh_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/s3hh_kd_f1h_h264.yaml --seed 1
+    after: paper_s3hh_s42
+  - name: paper_s3hh_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/s3hh_kd_f1h_h264.yaml --seed 2
+    after: paper_s3hh_s1
+  - name: final_eval_s3hh
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models s3hh_kd_f1h_h264 --seeds 42 1 2
+    after: paper_s3hh_s2
+  - name: make_tables_v11
+    cmd: python scripts/run_snapshot.py -- "python scripts/celebdf_official.py sync && python scripts/make_tables.py && python scripts/make_summary.py && python scripts/paper_stats.py --boot 1000 && python scripts/paper_analysis.py"
+    after: final_eval_s3hh
