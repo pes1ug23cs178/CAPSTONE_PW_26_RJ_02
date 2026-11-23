@@ -1,0 +1,20 @@
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\caption{Explanation quality on held-out self-blended test images with known blend masks. Pointing game and mask IoU: higher is better ($n$=2,000; region concept $n$=1,713). Blur-deletion and restoration: area under the fake-probability curve as patches are blurred or restored to the real source pixels, lower is better ($n$=500 images the teacher flags; region concept $n$=438). B1 and C1 do not flag these images (mean start probability 0.15 and 0.24), so their restoration curves are not comparable and are omitted.}
+\label{tab:explain}
+\begin{tabular}{lcccc}
+\toprule
+Map & Pointing$\uparrow$ & IoU$\uparrow$ & Blur-del.$\downarrow$ & Restore$\downarrow$ \\
+\midrule
+F1 region concept & 0.938 & 0.384 & -- & 0.281 \\
+F1 blend-strength map & 0.517 & 0.225 & 0.984 & 0.494 \\
+S3 blend-strength map & 0.725 & 0.259 & 0.923 & 0.544 \\
+B1 Grad-CAM & 0.155 & 0.052 & 0.702 & -- \\
+C1 attention rollout & 0.013 & 0.016 & 0.775 & -- \\
+Random map & 0.246 & 0.067 & 0.908 & 0.663 \\
+Oracle (true mask) & -- & -- & -- & 0.270 \\
+\bottomrule
+\end{tabular}
+\end{table}

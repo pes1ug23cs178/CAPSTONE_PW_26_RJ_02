@@ -58,3 +58,6 @@ ESA Report/**/~$*
 
 # generated Hugging Face Space folder (rebuild with scripts/build_space.py)
 deploy/
+
+# Overleaf bundle (rebuilt from paper/)
+paper/*.zip

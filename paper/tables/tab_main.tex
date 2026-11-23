@@ -1,0 +1,22 @@
+\begin{table*}[t]
+\centering
+\caption{Video AUC under the leak-free protocol (mean$\pm$sample std over 3 seeds). Cross = mean of DFD and Celeb-DF; the 95\% CI is a stratified bootstrap over videos (1,000 resamples) of the seed-mean cross AUC. All models see the same FF++ training identities; R2 sees only real faces and their self-blends.}
+\label{tab:main}
+\begin{tabular}{llccccc}
+\toprule
+ID & Model & FF++ test & DFD & Celeb-DF & Cross & Cross 95\% CI \\
+\midrule
+B1 & Swin-B, FF++ fakes & 0.997$\pm$0.003 & 0.903$\pm$0.020 & 0.805$\pm$0.016 & 0.854$\pm$0.012 & [0.837, 0.872] \\
+R1 & frozen CLIP, linear probe & 0.944$\pm$0.000 & 0.857$\pm$0.001 & 0.743$\pm$0.002 & 0.800$\pm$0.001 & [0.775, 0.825] \\
+R2 & SBI reprod., EffNet-B4 & 0.906$\pm$0.008 & 0.810$\pm$0.009 & 0.616$\pm$0.015 & 0.713$\pm$0.009 & [0.684, 0.742] \\
+\midrule
+C1 & CLIP ViT-L/14 + LoRA & 1.000$\pm$0.000 & 0.931$\pm$0.010 & 0.880$\pm$0.011 & 0.906$\pm$0.009 & [0.892, 0.920] \\
+F1 & GRACE (final teacher) & 0.997$\pm$0.004 & 0.951$\pm$0.004 & 0.878$\pm$0.017 & 0.914$\pm$0.010 & [0.898, 0.930] \\
+F1h & F1 + H.264 augment. & 0.993$\pm$0.007 & 0.939$\pm$0.006 & 0.886$\pm$0.005 & 0.912$\pm$0.004 & [0.896, 0.928] \\
+\midrule
+S0 & EffNet-B0, no teacher & 0.984$\pm$0.004 & 0.867$\pm$0.027 & 0.751$\pm$0.027 & 0.809$\pm$0.026 & [0.785, 0.833] \\
+S3 & EffNet-B0, full KD & 0.978$\pm$0.007 & 0.844$\pm$0.013 & 0.765$\pm$0.025 & 0.804$\pm$0.008 & [0.781, 0.827] \\
+S3h & S3 + H.264 inputs & 0.984$\pm$0.007 & 0.888$\pm$0.024 & 0.769$\pm$0.015 & 0.829$\pm$0.016 & [0.805, 0.851] \\
+\bottomrule
+\end{tabular}
+\end{table*}
