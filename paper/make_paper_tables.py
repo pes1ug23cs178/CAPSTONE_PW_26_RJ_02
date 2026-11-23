@@ -95,12 +95,12 @@ def ablation():
         r = p[(p.comparison == comp) & (p.split == "cross")].iloc[0]
         rows.append(f"{comp.replace(' - ', ' vs.\\ ')} & {what} & " + " & ".join(cells) + f" & [{mm(r.ci_low)}, {mm(r.ci_high)}] \\\\")
     write("tab_ablation", "\n".join([
-        "\\begin{table}[t]", "\\centering", "\\footnotesize", "\\setlength{\\tabcolsep}{3pt}",
+        "\\begin{table*}[t]", "\\centering", "\\footnotesize",
         "\\caption{Paired change in seed-mean video AUC (later minus earlier model, 3 seeds each). $^{*}$: the 95\\% "
         "paired bootstrap CI excludes zero. CI shown for the cross-dataset column.}",
         "\\label{tab:ablation}", "\\begin{tabular}{llcccc}", "\\toprule",
-        "Pair & Change & DFD & CDF & Cross & Cross CI \\\\", "\\midrule", *rows[:5], "\\midrule", *rows[5:],
-        "\\bottomrule", "\\end{tabular}", "\\end{table}", ""]))
+        "Pair & Change & DFD & Celeb-DF & Cross & Cross 95\\% CI \\\\", "\\midrule", *rows[:5], "\\midrule", *rows[5:],
+        "\\bottomrule", "\\end{tabular}", "\\end{table*}", ""]))
 
 
 def robustness(d):

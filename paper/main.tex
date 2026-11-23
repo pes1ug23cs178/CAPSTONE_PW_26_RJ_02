@@ -16,7 +16,7 @@
 
 \begin{document}
 
-\title{Recipe-Supervised Concepts for Robust and Explainable\\ Deepfake Detection: A Leak-Free Study}
+\title{Recipe-Supervised Concepts for Robust and Explainable Deepfake Detection: A Leak-Free Study}
 
 \author{
 \IEEEauthorblockN{Charan L, Deepak S N, Samrudh N Shindhe, Samarth Gowda G M, and Jyothi R}
@@ -203,10 +203,11 @@ concept head does not see, reach the decision; an L2 penalty keeps it small.
 \subsection{Training objective}
 Each batch mixes real faces, SBI fakes and FF++ fakes (sampling weights 3:2:1:1:1 for real, SBI, Deepfakes,
 Face2Face, FaceSwap). With $\mathcal{B}$ the binary cross-entropy,
-\begin{equation}
-\mathcal{L} = \mathcal{B}(\ell,y) + \lambda_c\,\mathcal{B}_{\mathrm{SBI}}(c,\hat c)
-+ \lambda_m\,\mathcal{B}_{\mathrm{SBI}}(M,\hat M) + \lambda_w\|w\|_1 + \lambda_r\,\overline{r(z)^2},
-\end{equation}
+\begin{align}
+\mathcal{L} = {} & \mathcal{B}(\ell,y) + \lambda_c\,\mathcal{B}_{\mathrm{SBI}}(c,\hat c)
++ \lambda_m\,\mathcal{B}_{\mathrm{SBI}}(M,\hat M) \nonumber\\
+& + \lambda_w\|w\|_1 + \lambda_r\,\overline{r(z)^2},
+\end{align}
 where concept and map terms apply only to SBI images (FF++ fakes have no recipe), $M$ is the concept-map output
 compared with the boundary map, $\lambda_c=\lambda_m=0.5$, $\lambda_w=10^{-4}$ and $\lambda_r=10^{-2}$.
 We train with AdamW~\cite{adamw} (weight decay 0.05; learning rates $2\times10^{-4}$ for LoRA, $10^{-3}$ for heads,
@@ -222,10 +223,10 @@ video-level test encoding; CRF 40 is never used in training.
 The student is an EfficientNet-B0~\cite{efficientnet} with the same concept head on its 7$\times$7 feature grid. It
 trains on degraded frames (clean 0.2, JPEG q20--60 0.35, downscale 0.25--0.5 0.25, both 0.2) while reading the
 teacher's outputs on the clean frame from a cache:
-\begin{equation}
-\mathcal{L}_S = 0.5\,\mathcal{B} + 0.5\,T^2\mathrm{KL}_T + \|z_S-z_T\|^2 + 0.5\,\mathcal{B}(c_S,\sigma(c_T))
-+ 0.5\,\|\sigma(M_S)-\sigma(M_T)\|^2,
-\end{equation}
+\begin{align}
+\mathcal{L}_S = {} & 0.5\,\mathcal{B} + 0.5\,T^2\mathrm{KL}_T + \|z_S-z_T\|^2 \nonumber\\
+& + 0.5\,\mathcal{B}(c_S,\sigma(c_T)) + 0.5\,\|\sigma(M_S)-\sigma(M_T)\|^2,
+\end{align}
 with temperature $T=4$. S0 is the same student without a teacher; S3h adds single-frame H.264 to a quarter of the
 degraded inputs.
 
@@ -308,7 +309,7 @@ the irregular-boundary concept c10 is not (0.515).
 \subsection{Calibration}
 Table~\ref{tab:ece} reports the expected calibration error~\cite{guo} of the raw probabilities. On Celeb-DF, B1 and
 C1 are badly over- or under-confident (0.578, 0.527), while F1 reaches 0.161 and F1h 0.059. Temperature scaling fitted on
-FF++ validation helps little (B1 on Celeb-DF: 0.578$	o$0.489), because FF++ validation is almost perfectly
+FF++ validation helps little (B1 on Celeb-DF: 0.578$\to$0.489), because FF++ validation is almost perfectly
 separated. ECE measures whether probabilities can be read
 as frequencies, not ranking quality: R2 is well calibrated but ranks poorly.
 
