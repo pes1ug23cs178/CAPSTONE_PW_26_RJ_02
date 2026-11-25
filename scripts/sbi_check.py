@@ -30,7 +30,8 @@ def main() -> None:
     sample = random.Random(0).sample(files, min(2000, len(files)))
     np.save(cache / "landmarks" / "mean_landmarks.npy", np.mean([np.load(f) for f in sample], axis=0).astype(np.float32))
 
-    df = pd.read_csv(REPO_ROOT / "splits" / "ffpp_train.csv", dtype=str)
+    split = sys.argv[1] if len(sys.argv) > 1 else "ffpp_train"  # fullff_train for the full-FF++ crops
+    df = pd.read_csv(REPO_ROOT / "splits" / f"{split}.csv", dtype=str)
     df = df[df["method"] == "real"]
     lookup = {(r.video_id, Path(r.frame_path).stem): r.frame_path for r in df.itertuples()}
     pick = random.Random(1).sample(files, min(64, len(files)))

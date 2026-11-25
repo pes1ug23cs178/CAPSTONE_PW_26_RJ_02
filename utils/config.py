@@ -24,7 +24,12 @@ def _resolve(p: str) -> Path:
 
 
 def load_paths(paths_file: Optional[str] = None) -> Dict[str, Path]:
-    paths_file = paths_file or str(REPO_ROOT / "configs" / "paths.yaml")
+    # GRACE_PATHS_FILE: set by load_config for configs with `paths_file` (e.g. the full-FF++ runs use their own
+    # cache root, because landmark and H.264 caches are keyed by video ID and FF++ IDs repeat across crop sets).
+    # Child processes (data-loader workers) inherit it.
+    paths_file = paths_file or os.environ.get("GRACE_PATHS_FILE") or str(REPO_ROOT / "configs" / "paths.yaml")
+    if not Path(paths_file).is_absolute():
+        paths_file = str(REPO_ROOT / paths_file)
     with open(paths_file, "r", encoding="utf-8") as f:
         raw = yaml.safe_load(f) or {}
     return {k: _resolve(v) for k, v in raw.items()}
@@ -60,6 +65,8 @@ def load_config(path: str, seed: Optional[int] = None, overrides: Optional[List[
         cfg["seed"] = int(seed)
     cfg.setdefault("seed", 42)
     cfg["config_path"] = str(Path(path).as_posix())
+    if cfg.get("paths_file"):
+        os.environ["GRACE_PATHS_FILE"] = str(cfg["paths_file"])
     cfg["paths"] = {k: str(v) for k, v in load_paths().items()}
     return cfg
 

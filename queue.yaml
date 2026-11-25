@@ -377,3 +377,37 @@ jobs:
   - name: make_tables_v11
     cmd: python scripts/run_snapshot.py -- "python scripts/celebdf_official.py sync && python scripts/make_tables.py && python scripts/make_summary.py && python scripts/paper_stats.py --boot 1000 && python scripts/paper_analysis.py"
     after: final_eval_s3hh
+  # Added 26 Nov 00:50 (branch fullff): full FF++ c23 retrain of B1, C1, F1 (3 seeds). Own cache root
+  # (configs/paths_fullff.yaml) so landmark/H.264 caches of the new crops never mix with the Feb ones.
+  - name: landmarks_fullff
+    cmd: python scripts/run_snapshot.py -- python scripts/with_paths.py configs/paths_fullff.yaml -- python scripts/extract_landmarks.py --splits fullff_train fullff_val
+  - name: landmarks_fullff_test
+    cmd: python scripts/run_snapshot.py -- python scripts/with_paths.py configs/paths_fullff.yaml -- python scripts/extract_landmarks.py --splits fullff_test --no-check-image
+    after: landmarks_fullff
+  - name: sbi_check_fullff
+    cmd: python scripts/run_snapshot.py -- python scripts/with_paths.py configs/paths_fullff.yaml -- python scripts/sbi_check.py fullff_train
+    after: landmarks_fullff_test
+  - name: sbi_sets_fullff
+    cmd: python scripts/run_snapshot.py -- python scripts/with_paths.py configs/paths_fullff.yaml -- python scripts/make_sbi_sets.py --prefix fullff
+    after: sbi_check_fullff
+  - name: full_f1_s42
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/f1_grace_dct_full.yaml --seed 42
+    after: sbi_sets_fullff
+  - name: full_b1_s42
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/b1_swin_full.yaml --seed 42
+  - name: full_c1_s42
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/c1_clip_lora_full.yaml --seed 42
+  - name: full_f1_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/f1_grace_dct_full.yaml --seed 1
+    after: full_f1_s42
+  - name: full_f1_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/f1_grace_dct_full.yaml --seed 2
+    after: full_f1_s1
+  - name: full_b1_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/b1_swin_full.yaml --seed 1
+  - name: full_b1_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/b1_swin_full.yaml --seed 2
+  - name: full_c1_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/c1_clip_lora_full.yaml --seed 1
+  - name: full_c1_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/c1_clip_lora_full.yaml --seed 2

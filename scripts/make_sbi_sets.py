@@ -29,9 +29,14 @@ N = 2000
 
 
 def main() -> None:
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--prefix", default="ffpp", help="split prefix: ffpp (Feb crops) or fullff (full FF++ crops)")
+    prefix = ap.parse_args().prefix
     paths = load_paths()
     data_root, cache = paths["data_root"], paths["cache_root"]
     for set_name, (split, seed) in SETS.items():
+        split = split.replace("ffpp", prefix, 1)
         df = pd.read_csv(REPO_ROOT / "splits" / f"{split}.csv", dtype=str)
         df = df[df["method"] == "real"].reset_index(drop=True)
         df = df[[ (cache / "landmarks" / r.video_id / f"{Path(r.frame_path).stem}.npy").exists() for r in df.itertuples()]]
