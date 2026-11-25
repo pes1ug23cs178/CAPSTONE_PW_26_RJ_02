@@ -29,12 +29,11 @@
 \maketitle
 
 \begin{abstract}
-Face-swap detectors trained on FaceForensics++ (FF++) lose accuracy on unseen datasets and on compressed video,
-and they explain decisions with heatmaps whose faithfulness is rarely tested. We train a detector whose logit is a
-weighted sum of ten named forgery concepts plus a penalised residual. The concept labels are the parameters of the
-self-blending recipe that creates each training fake (blend ratio, colour shift, blur, sharpening, resampling,
-region, misalignment and mask warping), so they need no annotation. The backbone is CLIP ViT-L/14 with LoRA, joined
-to an 8$\times$8 block-DCT branch through a gated fusion. Under source-video-disjoint FF++ splits, validation-only model
+Face-swap detectors trained on FaceForensics++ (FF++) lose accuracy on unseen datasets and compressed video, and
+their heatmap explanations are rarely tested for faithfulness. We train a detector whose logit is a weighted sum of
+ten named forgery concepts plus a penalised residual; the concept labels are the parameters of the self-blending
+recipe that creates each training fake, so they need no annotation. The backbone is CLIP ViT-L/14 with LoRA, fused
+with an 8$\times$8 block-DCT branch. Under source-video-disjoint FF++ splits, validation-only model
 selection and three seeds per model, the detector reaches a cross-dataset video AUC of 0.914 (DFD and the official
 Celeb-DF test list) against 0.854 for Swin-B; CLIP with LoRA alone reaches 0.906, and the difference to it is not
 statistically significant (95\% CI [$-$0.007, +0.024]). A step-by-step ablation separates the effects. Training on
@@ -199,7 +198,7 @@ Given a real crop $x\in[0,255]^{224\times224\times3}$ and its landmarks, the eng
 region $g$ (full face 0.40, mouth 0.25, eyes and brows 0.20, nose and cheeks 0.15) and fills the convex hull of the
 region's landmarks; mouth and eye masks are dilated by 8 and 6 pixels. With probability 0.5 the mask is warped by a
 smoothed random displacement field, and it is then blurred with a Gaussian kernel of odd size drawn from 3 to 31 and
-scaled to a maximum of 1, giving $m\in[0,1]^{224\times224}$. A copy $\tilde x$ receives each transform with its own
+scaled to a maximum of 1; the result is the mask $m\in[0,1]^{224\times224}$. A copy $\tilde x$ receives each transform with its own
 probability, and at least one transform is forced: a colour shift (0.5; per-channel offset in $[-20,20]$, hue shift
 in $[-10^\circ,10^\circ]$, brightness factor in $[-0.10,0.10]$), a texture change (0.5; Gaussian blur with
 $\sigma\in[1,2]$ or unsharp masking, equally likely), resampling (0.4; down to a scale in $[0.5,0.9]$ and back) and
@@ -405,7 +404,7 @@ The remaining sections test what the additions change other than clean AUC.
 
 \subsection{Ablation}
 Table~\ref{tab:ablation} compares each model with its parent. Adding the SBI cell to C1 moves DFD and Celeb-DF in
-opposite directions (+0.028 and $-$0.023), leaving cross AUC unchanged. The concept bottleneck (G1 vs.\ C2) adds
+opposite directions (+0.028 and $-$0.023); cross AUC does not change (+0.003). The concept bottleneck (G1 vs.\ C2) adds
 +0.009 cross with a Celeb-DF gain of +0.022, and the DCT branch (G2 vs.\ G1) adds +0.006, both statistically
 significant. In G1 and G2, however, the concept part explains only 0.36 of the logit variance on FF++ test: with
 $\lambda_r=10^{-3}$ the residual carries most of the decision.
@@ -512,7 +511,7 @@ zero, $\mathrm{do}(s_k=0)$, has the exact effect
 \label{eq:do}
 \end{equation}
 on every frame, with all other activations and $r(z)$ held fixed. We define two further interventions: concepts only,
-$\mathrm{do}(r=0)$, giving $\sum_k w_k s_k + b$; and residual only, $\mathrm{do}(s=0)$, giving $b+r(z)$. Each
+$\mathrm{do}(r=0)$, with logit $\sum_k w_k s_k + b$; and residual only, $\mathrm{do}(s=0)$, with logit $b+r(z)$. Each
 intervened logit is turned into a video score as before. We report three estimands per intervention: the change in
 video AUC; the mean logit contribution $w_k s_k$ on fake frames minus that on real frames, $\Delta\ell_k$; and the
 flip rate, the share of fake videos above the FF++-validation threshold that fall below it after the intervention.
