@@ -61,3 +61,4 @@ deploy/
 
 # Overleaf bundle (rebuilt from paper/)
 paper/*.zip
+.gradio/

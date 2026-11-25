@@ -48,6 +48,9 @@ Video AUC, seed mean; 95% bootstrap CI over videos (1000 resamples, stratified b
 | clean | A3 | 3 | dfd | 0.951 | [0.941, 0.959] |
 | clean | A3 | 3 | celebdf | 0.841 | [0.808, 0.872] |
 | clean | A3 | 3 | cross | 0.896 | [0.878, 0.912] |
+| clean | S3hh | 3 | dfd | 0.883 | [0.867, 0.899] |
+| clean | S3hh | 3 | celebdf | 0.775 | [0.733, 0.817] |
+| clean | S3hh | 3 | cross | 0.829 | [0.806, 0.853] |
 | jpeg30 | B1 | 3 | dfd | 0.801 | [0.777, 0.823] |
 | jpeg30 | B1 | 3 | celebdf | 0.752 | [0.715, 0.786] |
 | jpeg30 | B1 | 3 | cross | 0.776 | [0.754, 0.797] |
@@ -90,6 +93,9 @@ Video AUC, seed mean; 95% bootstrap CI over videos (1000 resamples, stratified b
 | jpeg30 | A3 | 3 | dfd | 0.934 | [0.923, 0.944] |
 | jpeg30 | A3 | 3 | celebdf | 0.814 | [0.782, 0.847] |
 | jpeg30 | A3 | 3 | cross | 0.874 | [0.857, 0.891] |
+| jpeg30 | S3hh | 3 | dfd | 0.820 | [0.799, 0.840] |
+| jpeg30 | S3hh | 3 | celebdf | 0.781 | [0.739, 0.819] |
+| jpeg30 | S3hh | 3 | cross | 0.801 | [0.776, 0.822] |
 | h26440 | B1 | 3 | dfd | 0.564 | [0.533, 0.594] |
 | h26440 | B1 | 3 | celebdf | 0.559 | [0.513, 0.603] |
 | h26440 | B1 | 3 | cross | 0.561 | [0.533, 0.589] |
@@ -132,6 +138,9 @@ Video AUC, seed mean; 95% bootstrap CI over videos (1000 resamples, stratified b
 | h26440 | A3 | 3 | dfd | 0.636 | [0.611, 0.662] |
 | h26440 | A3 | 3 | celebdf | 0.584 | [0.548, 0.622] |
 | h26440 | A3 | 3 | cross | 0.610 | [0.589, 0.634] |
+| h26440 | S3hh | 3 | dfd | 0.594 | [0.563, 0.625] |
+| h26440 | S3hh | 3 | celebdf | 0.644 | [0.598, 0.688] |
+| h26440 | S3hh | 3 | cross | 0.619 | [0.592, 0.647] |
 
 ## Paired differences (later model minus earlier)
 
@@ -182,6 +191,12 @@ Video AUC, seed mean; 95% bootstrap CI over videos (1000 resamples, stratified b
 | clean | G3 - A3 | dfd | +0.013 | [+0.007, +0.018] | 0.000 |
 | clean | G3 - A3 | celebdf | +0.019 | [+0.001, +0.037] | 0.038 |
 | clean | G3 - A3 | cross | +0.016 | [+0.006, +0.025] | 0.000 |
+| clean | S3hh - S3h | dfd | -0.005 | [-0.011, +0.001] | 0.120 |
+| clean | S3hh - S3h | celebdf | +0.006 | [-0.008, +0.021] | 0.328 |
+| clean | S3hh - S3h | cross | +0.001 | [-0.007, +0.008] | 0.852 |
+| clean | S3hh - S3 | dfd | +0.040 | [+0.030, +0.050] | 0.000 |
+| clean | S3hh - S3 | celebdf | +0.010 | [-0.008, +0.028] | 0.286 |
+| clean | S3hh - S3 | cross | +0.025 | [+0.015, +0.035] | 0.000 |
 | jpeg30 | C1 - B1 | dfd | +0.055 | [+0.042, +0.069] | 0.000 |
 | jpeg30 | C1 - B1 | celebdf | -0.030 | [-0.065, +0.009] | 0.138 |
 | jpeg30 | C1 - B1 | cross | +0.013 | [-0.006, +0.033] | 0.206 |
@@ -227,6 +242,12 @@ Video AUC, seed mean; 95% bootstrap CI over videos (1000 resamples, stratified b
 | jpeg30 | G3 - A3 | dfd | +0.013 | [+0.006, +0.019] | 0.000 |
 | jpeg30 | G3 - A3 | celebdf | +0.023 | [+0.004, +0.041] | 0.010 |
 | jpeg30 | G3 - A3 | cross | +0.018 | [+0.008, +0.027] | 0.000 |
+| jpeg30 | S3hh - S3h | dfd | -0.005 | [-0.012, +0.002] | 0.148 |
+| jpeg30 | S3hh - S3h | celebdf | +0.002 | [-0.011, +0.015] | 0.768 |
+| jpeg30 | S3hh - S3h | cross | -0.002 | [-0.009, +0.005] | 0.690 |
+| jpeg30 | S3hh - S3 | dfd | +0.002 | [-0.007, +0.011] | 0.586 |
+| jpeg30 | S3hh - S3 | celebdf | -0.009 | [-0.025, +0.008] | 0.308 |
+| jpeg30 | S3hh - S3 | cross | -0.003 | [-0.012, +0.006] | 0.502 |
 | h26440 | C1 - B1 | dfd | +0.107 | [+0.080, +0.131] | 0.000 |
 | h26440 | C1 - B1 | celebdf | +0.019 | [-0.026, +0.067] | 0.426 |
 | h26440 | C1 - B1 | cross | +0.063 | [+0.036, +0.089] | 0.000 |
@@ -272,3 +293,9 @@ Video AUC, seed mean; 95% bootstrap CI over videos (1000 resamples, stratified b
 | h26440 | G3 - A3 | dfd | +0.032 | [+0.014, +0.050] | 0.000 |
 | h26440 | G3 - A3 | celebdf | -0.000 | [-0.028, +0.027] | 0.968 |
 | h26440 | G3 - A3 | cross | +0.016 | [-0.001, +0.031] | 0.062 |
+| h26440 | S3hh - S3h | dfd | +0.014 | [+0.002, +0.026] | 0.030 |
+| h26440 | S3hh - S3h | celebdf | +0.003 | [-0.015, +0.020] | 0.736 |
+| h26440 | S3hh - S3h | cross | +0.009 | [-0.003, +0.019] | 0.120 |
+| h26440 | S3hh - S3 | dfd | +0.006 | [-0.011, +0.024] | 0.514 |
+| h26440 | S3hh - S3 | celebdf | -0.011 | [-0.037, +0.012] | 0.332 |
+| h26440 | S3hh - S3 | cross | -0.003 | [-0.018, +0.013] | 0.684 |

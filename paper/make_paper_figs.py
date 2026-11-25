@@ -4,7 +4,7 @@ python paper/make_paper_figs.py
 """
 from __future__ import annotations
 
-import shutil
+
 from pathlib import Path
 
 import matplotlib
@@ -89,9 +89,26 @@ def architecture():
     fig.savefig(OUT / "fig_architecture.png", dpi=300, bbox_inches="tight")
 
 
+def explanations():
+    """Report figure with its wide white gaps removed; the last row's clipped axis labels are trimmed."""
+    import numpy as np
+    from PIL import Image
+    a = np.asarray(Image.open(ROOT / "ESA Report" / "build" / "figs" / "fig_explanations_top.png").convert("RGB"))
+    blank = (a > 245).all(axis=2).all(axis=0)
+    keep, run = [], 0
+    for x, b in enumerate(blank):
+        run = run + 1 if b else 0
+        if not b or run <= 30:
+            keep.append(x)
+    a = a[:, keep]
+    ys = np.where(~(a > 245).all(axis=2).all(axis=1))[0]
+    a = a[max(0, ys[0] - 10): ys[-1] - 22]  # drop the half-visible tick labels under the last bar chart
+    Image.fromarray(a).save(OUT / "fig_explanations.png", dpi=(300, 300))
+
+
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     robustness()
     architecture()
-    shutil.copy(ROOT / "ESA Report" / "build" / "figs" / "fig_explanations_top.png", OUT / "fig_explanations.png")
+    explanations()
     print("wrote", sorted(p.name for p in OUT.iterdir()))
