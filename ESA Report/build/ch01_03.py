@@ -166,7 +166,7 @@ LIT = [
      "and 5,639 deepfakes made with an improved synthesis process.",
      "The improved synthesis reduces colour mismatch, temporal flicker and low-resolution blending boundaries. The "
      "dataset defines an official list of 518 test videos.",
-     "Detectors that performed well on earlier datasets scored much lower on Celeb-DF, establishing it as a standard "
+     "Detectors that performed well on earlier datasets scored much lower on Celeb-DF, and it became a standard "
      "test of generalisation.",
      "We never train on Celeb-DF; it is one of our two unseen test sets. Because all fakes come from one synthesis "
      "method, it tests transfer to one new method rather than to many."),
@@ -208,7 +208,7 @@ LIT = [
      "We follow the same principle of parameter-efficient adaptation, using LoRA on CLIP's attention projections. Like "
      "most CLIP-based detectors, Forensics Adapter outputs a score with no named evidence."),
     ("ganin", "Domain-Adversarial Training of Neural Networks",
-     "Ganin et al. [@ganin] introduced domain-adversarial training (DANN) for unsupervised domain adaptation, aiming for "
+     "Ganin et al. [@ganin] introduced domain-adversarial training (DANN) for unsupervised domain adaptation. The aim is "
      "features that are useful for the task but uninformative about the domain.",
      "A domain classifier is attached to the feature extractor through a gradient reversal layer. The extractor is "
      "trained to minimise the task loss while maximising the domain classifier's loss.",

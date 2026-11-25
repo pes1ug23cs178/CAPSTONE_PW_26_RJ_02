@@ -145,7 +145,7 @@ def ch10():
          stud[1:], [3.4, 1.4, 1.4, 1.6, 1.6, 2.0, 2.0, 1.8, 1.8]),
         ("p", f"The student has 65 times fewer parameters and 200 times fewer operations than the teacher. It processes "
               f"{eff.loc['s3_kd_full', 'gpu_fps_bs64']:.0f} faces per second on the GPU and takes "
-              f"{eff.loc['s3_kd_full', 'cpu_onnx_latency_ms_bs1']:.1f} ms per face on the CPU, meeting requirement NFR-1."),
+              f"{eff.loc['s3_kd_full', 'cpu_onnx_latency_ms_bs1']:.1f} ms per face on the CPU, which meets requirement NFR-1."),
         ("p", f"The hypothesis that distillation improves accuracy (H4) was **not confirmed** for clean inputs. With "
               f"three seeds each, the student trained without a teacher (S0, {s0x:.3f}) is slightly ahead of the "
               f"logit-distilled (S2, {s2x:.3f}) and fully distilled (S3, {s3x:.3f}) students, within seed variation. An "
@@ -167,7 +167,7 @@ def ch10():
               f"also beats the post-hoc methods. Switching off the top concept lowers the teacher's fake probability by "
               f"{_metric('F1', 'intervention_drop_top'):.3f} on average, against "
               f"{_metric('F1', 'intervention_drop_random'):.3f} for a random concept, so the named concepts do drive "
-              f"the decision. The deletion test is a weakness: removing the highlighted pixels does not lower the score "
+              f"the decision. The deletion test is a weakness: removing the marked pixels does not lower the score "
               f"more than removing random pixels. This suggests that the teacher also uses evidence spread over the "
               f"whole face, and it is reported as a limitation."),
         ("tab", "conceptauc", "Concept AUC against the recipe labels on held-out self-blended faces.",
@@ -244,7 +244,7 @@ def ch10():
               "manipulation methods), so their numbers are not directly comparable with ours. Table {tab:published} "
               "compares the methods by design."),
         ("tab", "published", "Design comparison with published detectors.",
-         ["Method", "Backbone", "Key idea", "Explanation", "Frequency", "Light student"],
+         ["Method", "Backbone", "Main idea", "Explanation", "Frequency", "Light student"],
          [["Xception [@ffpp]", "Xception", "Spatial CNN", "–", "–", "–"],
           ["Face X-ray [@facexray]", "HRNet", "Blending-boundary map", "Map", "–", "–"],
           ["SBI [@sbi]", "EfficientNet-B4", "Self-blended data", "–", "–", "–"],
@@ -286,7 +286,7 @@ def ch11():
             "analyst evidence to examine, not just a score.",
             "**Education and awareness:** the plain-language clues teach users what face manipulations look like.",
             "**Research:** the leak-free protocol, the experiment queue and the result scripts form a reusable "
-            "benchmark harness for new detectors.",
+            "test bench for new detectors.",
         ]),
         ("h2", "Limitations"),
         ("bul", [
@@ -294,7 +294,7 @@ def ch11():
             "Only two unseen datasets were tested, and both predate diffusion-based face synthesis.",
             "Strong H.264 re-encoding (CRF 40) still reduces cross-dataset AUC to about 0.64 for every model.",
             "Concept labels come from a synthetic recipe. One concept (irregular boundary) is not learnable, and "
-            "deletion tests show that the teacher also uses evidence outside the highlighted region.",
+            "deletion tests show that the teacher also uses evidence outside the marked region.",
             "The system is visual and frame-based. Audio and temporal modelling, part of the original multimodal "
             "vision, were not implemented in this phase.",
             "Detection is limited to near-frontal faces; extreme head poses are excluded from the verdict.",

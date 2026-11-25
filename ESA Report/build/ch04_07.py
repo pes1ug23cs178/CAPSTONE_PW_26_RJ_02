@@ -277,8 +277,8 @@ def ch6():
               "learning-rate decay with AdamW [@adamw] and separate learning rates for each parameter group, keeps an "
               "exponential moving average (EMA) of the weights, evaluates the EMA weights on FF++ validation after every "
               "epoch, and saves the best checkpoint. compute_loss() in models/losses.py combines the terms of Equation "
-              "{eq:teacherloss}, masking concept and boundary terms for samples that have no recipe. For students, "
-              "distill.py reuses train.py with the distillation terms of Equation {eq:kdloss}, reading the teacher's "
+              "{eq:teacherloss} and masks the concept and boundary terms for samples that have no recipe. For students, "
+              "distill.py reuses train.py with the distillation terms of Equation {eq:kdloss} and reads the teacher's "
               "outputs from TeacherCache instead of running the teacher. Before training starts, the cache is checked "
               "against a fresh forward pass on 100 random crops (maximum difference below 10⁻³)."),
         ("h2", "Evaluation Module"),
@@ -365,7 +365,7 @@ def ch7():
         ("h3", "Backbone"),
         ("p", "The OpenAI CLIP ViT-L/14 image encoder [@clip] (through OpenCLIP [@openclip]) is kept frozen. LoRA adapters "
               "[@lora] of rank 16 and scale 32 are inserted into the query-key-value projections of all 24 transformer "
-              "blocks, adding about 1.6 M trainable parameters. Only the adapters are saved with a checkpoint (12.6 MB)."),
+              "blocks. This adds about 1.6 M trainable parameters. Only the adapters are saved with a checkpoint (12.6 MB)."),
         ("h3", "Frequency Branch"),
         ("p", "The luminance channel is divided into 8 × 8 blocks, and each block is transformed with the orthonormal 2-D "
               "DCT-II, the same transform that JPEG and H.264 quantise. The 64 coefficients of the 28 × 28 blocks form a "
