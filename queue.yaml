@@ -398,6 +398,8 @@ jobs:
   - name: dfo_eval_full_f1_s42
     cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models f1_grace_dct_full --seeds 42 --splits dfo_test --degrades clean --out results/fullff/dfo_full_f1_s42.csv
     after: full_f1_s42
+  - name: dfo_eval_full_f1_s42_r2  # r1 failed: eval_all only recognised runs with metrics_ffpp_test.json
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models f1_grace_dct_full --seeds 42 --splits dfo_test --degrades clean --out results/fullff/dfo_full_f1_s42.csv
   - name: full_b1_s42
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/b1_swin_full.yaml --seed 42
   - name: full_c1_s42

@@ -36,7 +36,8 @@ def resolve_runs(names: List[str], seeds: List[int]) -> List[Path]:
             continue
         for seed in seeds:
             cands = sorted((REPO_ROOT / "runs").glob(f"{name}_s{seed}_*"))
-            cands = [c for c in cands if (c / "best.pth").exists() and (c / "metrics_ffpp_test.json").exists()]
+            cands = [c for c in cands if (c / "best.pth").exists()  # finished = test metrics written (ffpp or full FF++)
+                     and any((c / f"metrics_{t}_test.json").exists() for t in ("ffpp", "fullff"))]
             if cands:
                 runs.append(cands[-1])
             else:
@@ -116,6 +117,8 @@ def main() -> None:
                              "gate_mean": m.get("gate_mean")})
         del model
         torch.cuda.empty_cache()
+    if not rows:
+        sys.exit("no finished runs found for " + " ".join(args.models))
     df = pd.DataFrame(rows)
     out = REPO_ROOT / args.out
     out.parent.mkdir(parents=True, exist_ok=True)
