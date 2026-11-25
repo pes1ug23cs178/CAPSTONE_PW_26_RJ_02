@@ -217,6 +217,7 @@ FF++ training reals with a fixed seed, so the teacher's outputs on them can be c
 
 \begin{table}[t]
 \centering\footnotesize
+\setlength{\tabcolsep}{4pt}
 \caption{Concept targets set from the SBI recipe ($a$: blend ratio).}
 \label{tab:concepts}
 \begin{tabular}{lll}
@@ -224,7 +225,7 @@ FF++ training reals with a fixed seed, so the teacher's outputs on them can be c
 & Concept & Target \\
 \midrule
 c1 & blend strength & $a$ \\
-c2 & colour mismatch & $a\times$ colour-shift strength $\in[0,1]$ \\
+c2 & colour mismatch & $a\times$ colour-shift strength \\
 c3 & blur & $a$ if the copy was blurred, else 0 \\
 c4 & sharpen & $a$ if sharpened, else 0 \\
 c5 & resampling & $a$ if resampled, else 0 \\
@@ -239,7 +240,7 @@ c10 & irregular boundary & 1 if the mask was warped, else 0 \\
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.82\textwidth]{fig_sbi.png}
+\includegraphics[width=0.68\textwidth]{fig_sbi.png}
 \caption{Self-blended training fakes. Top: real FF++ crops. Middle: the self-blend with its recipe ($a$ and the
 transforms applied to the copy). Bottom: the blend mask $m$. Each recipe sets the ten concept targets of
 Table~\ref{tab:concepts}; nose-and-cheek blends (fourth column) activate no region concept.}
@@ -354,7 +355,8 @@ two domains (FF++ and a pool of unlabelled Celeb-DF crops that excludes every te
 \begin{table}[t]
 \centering\footnotesize
 \setlength{\tabcolsep}{3pt}
-\caption{Models. All use the same splits, crops, sampler and evaluation code. Seeds: 3 unless marked $^1$.}
+\caption{Models. All use the same splits, crops, sampler and evaluation code. Seeds: 3 unless marked $^1$. DFD is
+not a test set for X1.}
 \label{tab:models}
 \begin{tabular}{ll}
 \toprule
@@ -375,7 +377,7 @@ F1 & G2 + $\lambda_r=10^{-2}$ + selection score $S$ (final teacher) \\
 F1h & F1 + single-frame H.264 augmentation \\
 F2$^1$ & F1 + DANN/MMD on mean-pooled patch tokens \\
 D2 & F1 + unlabelled Celeb-DF crops, DANN/MMD 0.01 \\
-X1 & F1 recipe trained on FF++ + all DFD videos (DFD not a test set) \\
+X1 & F1 recipe trained on FF++ + all DFD videos \\
 S0--S3xx & EfficientNet-B0 students (Section~\ref{sec:kd}, Table~\ref{tab:students}) \\
 \bottomrule
 \end{tabular}
@@ -555,6 +557,15 @@ carries most of the decision.
 
 \input{tables/tab_bymethod}
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{fig_explanations.png}
+\caption{Explanations for three test fakes (two from Celeb-DF, one from DFD). From left: input with F1's fake
+probability; F1's top concept map; F1's ten concept activations (top concept in red); Grad-CAM of B1; attention
+rollout of C1; S3's top concept map on the JPEG-30 version of the frame.}
+\label{fig:explain}
+\end{figure*}
+
 \subsection{Concept responses on real manipulations}
 The concept head never saw a labelled real manipulation. Table~\ref{tab:bymethod} shows that its responses still
 follow the manipulation type. On FF++, Face2Face and FaceSwap raise the eye-region concept c7 (0.45 and 0.41) far
@@ -617,15 +628,6 @@ zero.
 
 A related intervention on the same images switches off the top-scoring concept: the fake probability of F1 falls by
 0.054 on average, against 0.011 for a randomly chosen other concept (S3: 0.022 vs.\ 0.005).
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{fig_explanations.png}
-\caption{Explanations for three test fakes (two from Celeb-DF, one from DFD). From left: input with F1's fake
-probability; F1's top concept map; F1's ten concept activations (top concept in red); Grad-CAM of B1; attention
-rollout of C1; S3's top concept map on the JPEG-30 version of the frame.}
-\label{fig:explain}
-\end{figure*}
 
 Fig.~\ref{fig:explain} shows three test fakes. In all three, full face is F1's top concept and its map covers the
 swapped face region; the Grad-CAM and rollout maps of B1 and C1 concentrate on the background and image borders.
