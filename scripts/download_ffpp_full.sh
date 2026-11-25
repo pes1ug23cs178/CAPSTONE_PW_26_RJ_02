@@ -15,6 +15,6 @@ run() {  # $1 dataset, $2 type
   done
   echo "$(date '+%F %T') FAILED $1 $2" >> "$LOG"
 }
-for d in original Deepfakes Face2Face FaceSwap NeuralTextures FaceShifter; do run "$d" videos; done
+[ "$1" = "masks" ] || for d in original Deepfakes Face2Face FaceSwap NeuralTextures FaceShifter; do run "$d" videos; done
 for d in Deepfakes Face2Face FaceSwap NeuralTextures; do run "$d" masks; done
 echo "$(date '+%F %T') ALL FINISHED" >> "$LOG"
