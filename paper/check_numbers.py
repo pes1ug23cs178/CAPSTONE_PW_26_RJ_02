@@ -1,4 +1,4 @@
-"""Check that every decimal number in paper/main.tex appears in a results file or a generated table.
+"""Check that every decimal number in paper/Paper.tex (or the file given as argument) appears in a results file or a generated table.
 
 python paper/check_numbers.py   (prints numbers it cannot find; exit code 1 if any)
 """
@@ -17,7 +17,7 @@ def numbers(text: str) -> set[str]:
 
 
 def main():
-    tex = (ROOT / "paper" / "main.tex").read_text(encoding="utf-8")
+    tex = (ROOT / "paper" / (sys.argv[1] if len(sys.argv) > 1 else "Paper.tex")).read_text(encoding="utf-8")
     tex = re.sub(r"(?m)%.*$", "", tex)
     pool = ""
     for p in list((ROOT / "results").glob("*.md")) + list((ROOT / "results").glob("*.csv")) + \

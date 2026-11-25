@@ -2,7 +2,7 @@
 \centering
 \footnotesize
 \setlength{\tabcolsep}{3pt}
-\caption{Cross-dataset video AUC under degradation of the test frames (mean$\pm$sample std, 3 seeds). Down 0.25 = downscale to 25\% and back. H.264 training (F1h, S3h) uses CRF 24--38, never 40.}
+\caption{Cross-dataset video AUC with degraded test frames (mean$\pm$sample std, 3 seeds). Down 0.25: downscale to 25\% and back. F1h trains with CRF 24--38, never 40.}
 \label{tab:robust}
 \begin{tabular}{lcccc}
 \toprule
@@ -11,14 +11,13 @@ Model & Clean & JPEG 30 & Down 0.25 & H.264 40 \\
 B1 & 0.854$\pm$0.012 & 0.776$\pm$0.033 & 0.757$\pm$0.030 & 0.561$\pm$0.012 \\
 R1 & 0.800$\pm$0.001 & 0.757$\pm$0.001 & 0.741$\pm$0.000 & 0.681$\pm$0.001 \\
 R2 & 0.713$\pm$0.009 & 0.710$\pm$0.011 & 0.719$\pm$0.010 & 0.555$\pm$0.014 \\
-C1 & 0.906$\pm$0.009 & 0.789$\pm$0.026 & 0.823$\pm$0.012 & 0.624$\pm$0.014 \\
 \midrule
+C1 & 0.906$\pm$0.009 & 0.789$\pm$0.026 & 0.823$\pm$0.012 & 0.624$\pm$0.014 \\
+C2 & 0.908$\pm$0.003 & 0.898$\pm$0.017 & 0.886$\pm$0.007 & 0.661$\pm$0.018 \\
+G1 & 0.917$\pm$0.004 & 0.901$\pm$0.005 & 0.895$\pm$0.013 & 0.652$\pm$0.011 \\
+G2 & 0.923$\pm$0.009 & 0.909$\pm$0.008 & 0.895$\pm$0.014 & 0.653$\pm$0.026 \\
 F1 & 0.914$\pm$0.010 & 0.901$\pm$0.008 & 0.878$\pm$0.010 & 0.644$\pm$0.020 \\
 F1h & 0.912$\pm$0.004 & 0.894$\pm$0.003 & 0.875$\pm$0.009 & 0.688$\pm$0.006 \\
-\midrule
-S0 & 0.809$\pm$0.026 & 0.796$\pm$0.016 & 0.783$\pm$0.016 & 0.606$\pm$0.015 \\
-S3 & 0.804$\pm$0.008 & 0.804$\pm$0.012 & 0.799$\pm$0.004 & 0.622$\pm$0.015 \\
-S3h & 0.829$\pm$0.016 & 0.802$\pm$0.023 & 0.789$\pm$0.033 & 0.610$\pm$0.023 \\
 \bottomrule
 \end{tabular}
 \end{table}

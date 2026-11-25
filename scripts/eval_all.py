@@ -119,6 +119,9 @@ def main() -> None:
     df = pd.DataFrame(rows)
     out = REPO_ROOT / args.out
     out.parent.mkdir(parents=True, exist_ok=True)
+    if out.exists():  # keep rows of models not evaluated in this call (a partial run must not drop other models)
+        old = pd.read_csv(out)
+        df = pd.concat([old[~old.model.isin(df.model.unique())], df], ignore_index=True)
     df.to_csv(out, index=False)
     agg = df.groupby(["model", "split", "degrade"])["video_auc"].mean().reset_index()
     for split in args.splits:

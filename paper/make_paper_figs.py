@@ -1,4 +1,4 @@
-"""Figures for the paper -> paper/figs/. Reads results/robustness.csv only (no GPU, no dataset access).
+"""Figures for the paper -> paper/figs/. Reads results/ files and report figures only (no GPU, no dataset access).
 
 python paper/make_paper_figs.py
 """
@@ -19,8 +19,8 @@ plt.rcParams.update({"font.family": "serif", "font.size": 8, "axes.linewidth": 0
 
 # Okabe-Ito colour-blind-safe palette
 MODELS = [("b1_swin", "B1 Swin-B", "#999999", "o"), ("r1_univfd", "R1 frozen CLIP", "#E69F00", "v"),
-          ("c1_clip_lora", "C1 CLIP+LoRA", "#56B4E9", "s"), ("f1_grace_dct", "F1 GRACE", "#0072B2", "D"),
-          ("f1h_grace_dct_h264", "F1h GRACE+H.264", "#D55E00", "^"), ("s3_kd_full", "S3 student", "#009E73", "P")]
+          ("c1_clip_lora", "C1 CLIP+LoRA", "#56B4E9", "s"), ("f1_grace_dct", "F1 teacher", "#0072B2", "D"),
+          ("f1h_grace_dct_h264", "F1h (+H.264 aug.)", "#D55E00", "^"), ("s3_kd_full", "S3 student", "#009E73", "P")]
 
 
 def robustness():
@@ -106,9 +106,41 @@ def explanations():
     Image.fromarray(a).save(OUT / "fig_explanations.png", dpi=(300, 300))
 
 
+def restoration():
+    """Mean fake probability while patches are restored to the real source pixels (results/explain_restore_curves.csv)."""
+    f = ROOT / "results" / "explain_restore_curves.csv"
+    if not f.exists():
+        print("skip restoration figure: run scripts/explain_restore.py first")
+        return
+    d = pd.read_csv(f)
+    styles = [("F1 region", "F1 region concept", "#0072B2", "-"), ("F1 c1", "F1 blend-strength map", "#56B4E9", "-"),
+              ("S3 c1", "S3 blend-strength map", "#009E73", "-"), ("oracle", "true blend mask", "#000000", "--"),
+              ("random", "random order", "#999999", ":")]
+    fig, ax = plt.subplots(figsize=(3.4, 2.0))
+    for col, lab, c, ls in styles:
+        if col in d:
+            ax.plot(d.fraction_restored, d[col], color=c, ls=ls, lw=1.2, label=lab)
+    ax.set_xlabel("Fraction of 14$\\times$14 patches restored to real pixels")
+    ax.set_ylabel("Mean fake probability")
+    ax.set_ylim(0, 1.02)
+    ax.grid(alpha=0.3, lw=0.4)
+    ax.legend(frameon=False, fontsize=6.3, loc="upper right")
+    fig.tight_layout(pad=0.3)
+    fig.savefig(OUT / "fig_restoration.pdf", bbox_inches="tight")
+    fig.savefig(OUT / "fig_restoration.png", dpi=300, bbox_inches="tight")
+
+
+def sbi_examples():
+    """Report figure of five self-blended images with their recipes and masks (made by ESA Report/build/make_sbi_figure.py)."""
+    from PIL import Image
+    Image.open(ROOT / "ESA Report" / "build" / "figs" / "sbi_examples.png").convert("RGB").save(OUT / "fig_sbi.png", dpi=(300, 300))
+
+
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     robustness()
     architecture()
     explanations()
+    restoration()
+    sbi_examples()
     print("wrote", sorted(p.name for p in OUT.iterdir()))

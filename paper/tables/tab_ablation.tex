@@ -1,21 +1,21 @@
 \begin{table*}[t]
 \centering
 \footnotesize
-\caption{Paired change in seed-mean video AUC (later minus earlier model, 3 seeds each). $^{*}$: the 95\% paired bootstrap CI excludes zero. CI shown for the cross-dataset column.}
+\caption{Paired change in seed-mean video AUC, later model minus earlier (3 seeds each, the same resampled videos for both models). $^{*}$: the 95\% paired bootstrap CI excludes zero. CI and two-sided bootstrap $p$ refer to the cross column. Concept share: variance of the concept part of the logit divided by the variance of the logit on FF++ test frames, for the later model (-- for linear heads).}
 \label{tab:ablation}
-\begin{tabular}{llcccc}
+\begin{tabular}{llcccccc}
 \toprule
-Pair & Change & DFD & Celeb-DF & Cross & Cross 95\% CI \\
+Pair & Change & DFD & Celeb-DF & Cross & Cross 95\% CI & $p$ & Concept share \\
 \midrule
-C2 vs.\ C1 & + SBI pseudo-fakes & +0.028$^{*}$ & $-$0.023 & +0.003 & [$-$0.014, +0.019] \\
-G1 vs.\ C2 & + concept bottleneck & $-$0.004$^{*}$ & +0.022$^{*}$ & +0.009$^{*}$ & [+0.004, +0.014] \\
-G2 vs.\ G1 & + DCT branch, gated fusion & +0.010$^{*}$ & +0.002 & +0.006$^{*}$ & [+0.002, +0.010] \\
-F1 vs.\ G2 & + residual penalty, val selection & $-$0.015$^{*}$ & $-$0.003 & $-$0.009$^{*}$ & [$-$0.017, $-$0.001] \\
-G3 vs.\ A3 & concept head vs.\ linear head & +0.013$^{*}$ & +0.019$^{*}$ & +0.016$^{*}$ & [+0.006, +0.025] \\
+C2 vs.\ C1 & + SBI pseudo-fakes in the batch & +0.028$^{*}$ & $-$0.023 & +0.003 & [$-$0.014, +0.019] & 0.752 & -- \\
+G1 vs.\ C2 & + concept bottleneck (residual 1e-3) & $-$0.004$^{*}$ & +0.022$^{*}$ & +0.009$^{*}$ & [+0.004, +0.014] & 0.000 & 0.36$\pm$0.15 \\
+G2 vs.\ G1 & + block-DCT branch, gated fusion & +0.010$^{*}$ & +0.002 & +0.006$^{*}$ & [+0.002, +0.010] & 0.000 & 0.36$\pm$0.13 \\
+F1 vs.\ G2 & residual 1e-3 $\to$ 1e-2, harder selection & $-$0.015$^{*}$ & $-$0.003 & $-$0.009$^{*}$ & [$-$0.017, $-$0.001] & 0.022 & 0.84$\pm$0.00 \\
+G3 vs.\ A3 & concept head vs.\ linear head (both + DANN) & +0.013$^{*}$ & +0.019$^{*}$ & +0.016$^{*}$ & [+0.006, +0.025] & 0.000 & 1.00$\pm$0.00 \\
 \midrule
-C1 vs.\ B1 & Swin-B $\to$ CLIP+LoRA & +0.028$^{*}$ & +0.075$^{*}$ & +0.052$^{*}$ & [+0.037, +0.067] \\
-F1 vs.\ C1 & all GRACE additions & +0.019$^{*}$ & $-$0.002 & +0.009 & [$-$0.007, +0.024] \\
-F1h vs.\ F1 & + H.264 augmentation & $-$0.011$^{*}$ & +0.008 & $-$0.002 & [$-$0.008, +0.004] \\
+C1 vs.\ B1 & Swin-B $\to$ CLIP ViT-L/14 + LoRA & +0.028$^{*}$ & +0.075$^{*}$ & +0.052$^{*}$ & [+0.037, +0.067] & 0.000 & -- \\
+F1 vs.\ C1 & all additions together & +0.019$^{*}$ & $-$0.002 & +0.009 & [$-$0.007, +0.024] & 0.308 & 0.84$\pm$0.00 \\
+F1h vs.\ F1 & + single-frame H.264 augmentation & $-$0.011$^{*}$ & +0.008 & $-$0.002 & [$-$0.008, +0.004] & 0.588 & 0.81$\pm$0.00 \\
 \bottomrule
 \end{tabular}
 \end{table*}

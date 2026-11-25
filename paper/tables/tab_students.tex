@@ -1,0 +1,22 @@
+\begin{table*}[t]
+\centering
+\footnotesize
+\caption{EfficientNet-B0 students (4.71\,M parameters, 0.39\,GFLOPs; 3 seeds each). Teacher F1: 306.94\,M parameters, 81.46\,GFLOPs. H.264 40 is the cross AUC at CRF 40 (-- where not evaluated). S0x and S3xx train on DFD, so DFD is not a test set for them.}
+\label{tab:students}
+\begin{tabular}{llcccc}
+\toprule
+ID & Training signal & FF++ test & DFD & Celeb-DF & Cross, H.264 40 \\
+\midrule
+S0 & no teacher & 0.984$\pm$0.004 & 0.867$\pm$0.027 & 0.751$\pm$0.027 & 0.606$\pm$0.015 \\
+S2 & KD: logit only & 0.984$\pm$0.007 & 0.859$\pm$0.010 & 0.752$\pm$0.012 & 0.613$\pm$0.010 \\
+S3 & KD: logit, $z$, concepts, maps & 0.978$\pm$0.007 & 0.844$\pm$0.013 & 0.765$\pm$0.025 & 0.622$\pm$0.015 \\
+\midrule
+S3h & S3 + H.264 inputs & 0.984$\pm$0.007 & 0.888$\pm$0.024 & 0.769$\pm$0.015 & 0.610$\pm$0.023 \\
+S3hh & S3h, teacher F1h & 0.980$\pm$0.008 & 0.883$\pm$0.030 & 0.775$\pm$0.022 & 0.619$\pm$0.008 \\
+\midrule
+S3x & S3, teacher X1 & 0.987$\pm$0.003 & 0.864$\pm$0.013 & 0.752$\pm$0.027 & -- \\
+S0x & S0 + DFD in training & 0.990$\pm$0.003 & (train) & 0.805$\pm$0.028 & -- \\
+S3xx & S3x + DFD in training & 0.992$\pm$0.003 & (train) & 0.797$\pm$0.029 & -- \\
+\bottomrule
+\end{tabular}
+\end{table*}

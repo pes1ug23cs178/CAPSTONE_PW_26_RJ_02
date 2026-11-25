@@ -1,0 +1,24 @@
+\begin{table*}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\caption{Mean concept score $s_k$ of F1 (seed 42) per test group, frame level. The concepts were trained only on self-blended images; FF++ fakes and all DFD/Celeb-DF videos carry no concept labels.}
+\label{tab:bymethod}
+\begin{tabular}{lccccccccccc}
+\toprule
+Group & Frames & c1 & c2 & c3 & c4 & c5 & c6 & c7 & c8 & c9 & c10 \\
+\midrule
+FF++ real & 4,400 & 0.03 & 0.01 & 0.00 & 0.01 & 0.01 & 0.02 & 0.01 & 0.02 & 0.01 & 0.03 \\
+FF++ Deepfakes & 3,591 & 0.67 & 0.58 & 0.21 & 0.38 & 0.44 & 0.05 & 0.14 & 0.91 & 0.68 & 0.71 \\
+FF++ Face2Face & 640 & 0.49 & 0.47 & 0.11 & 0.55 & 0.32 & 0.20 & 0.45 & 0.75 & 0.65 & 0.63 \\
+FF++ FaceSwap & 192 & 0.36 & 0.47 & 0.06 & 0.46 & 0.18 & 0.16 & 0.41 & 0.60 & 0.50 & 0.52 \\
+\midrule
+DFD real & 11,007 & 0.11 & 0.02 & 0.01 & 0.03 & 0.03 & 0.05 & 0.04 & 0.10 & 0.04 & 0.12 \\
+DFD fake & 29,023 & 0.49 & 0.29 & 0.10 & 0.16 & 0.22 & 0.06 & 0.06 & 0.66 & 0.34 & 0.50 \\
+\midrule
+Celeb-real & 3,412 & 0.12 & 0.01 & 0.01 & 0.05 & 0.04 & 0.06 & 0.04 & 0.08 & 0.04 & 0.12 \\
+YouTube-real & 2,184 & 0.17 & 0.02 & 0.02 & 0.06 & 0.05 & 0.06 & 0.05 & 0.13 & 0.06 & 0.17 \\
+Celeb-synthesis & 10,868 & 0.32 & 0.07 & 0.04 & 0.09 & 0.09 & 0.05 & 0.05 & 0.43 & 0.15 & 0.31 \\
+\bottomrule
+\end{tabular}
+\end{table*}

@@ -27,7 +27,7 @@ LABEL = {"b1_swin": "B1 Swin-B", "b2_swin_dann": "B2 Swin-B + DANN (real as a do
          "f1_grace_dct": "F1 G2-DCT + residual 1e-2 + hard-val selection",
          "f2_grace_pdann": "F2 F1 + DANN/MMD on patch features",
          "s0_student": "S0 student, no teacher", "s2_kd_logits": "S2 student, logit KD", "s3_kd_full": "S3 student, full KD",
-         "d2_unsup_adapt": "D2 G3 + unsupervised adaptation to Celeb-DF", "x1_ffpp_dfd": "X1 G3 trained on FF++ + DFD (DFD not a test set)",
+         "d2_unsup_adapt": "D2 G3 + unsupervised adaptation to Celeb-DF", "x1_ffpp_dfd": "X1 F1 recipe trained on FF++ + DFD (DFD not a test set)",
          "r1_univfd": "R1 baseline: frozen CLIP linear probe (UnivFD-style)",
          "r2_sbi_effb4": "R2 baseline: SBI reproduction (EfficientNet-B4, real + SBI only)",
          "f1h_grace_dct_h264": "F1h F1 + H.264 training augmentation",

@@ -13,6 +13,7 @@ python scripts/explain_restore.py
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -41,7 +42,7 @@ def restore_curve(model, img, real, m, device):
             cur[sl] = real[sl]
         seq.append(cur.copy())
     p = fake_prob(model, seq, device)
-    return float(np.trapezoid(p, dx=1 / STEPS)), float(p[0]), float(p[STEPS // 4])
+    return float(np.trapezoid(p, dx=1 / STEPS)), float(p[0]), float(p[STEPS // 4]), np.asarray(p, float)
 
 
 def main() -> None:
@@ -64,10 +65,10 @@ def main() -> None:
         if len(keep) >= args.limit:
             break
     print(f"{len(keep)} flagged SBI test images", flush=True)
-    rows = []
+    rows, curves = [], {}
     for meth in ["G3 c1", "G3 region", "B1 Grad-CAM", "C1 rollout", "S3 c1", "random", "oracle"]:
         model = models[METHOD_MODEL.get(meth, "g3")]
-        aucs, p0s, p25s = [], [], []
+        aucs, p0s, p25s, seqs = [], [], [], []
         for r in keep:
             if meth == "G3 region" and r.region not in REGION_CONCEPT:
                 continue
@@ -76,8 +77,9 @@ def main() -> None:
                 m = np.load(root / r.mask_path).astype(np.float32)
             else:
                 m = method_map(meth, models, img, device, r.region)
-            a, p0, p25 = restore_curve(model, img, real, m, device)
-            aucs.append(a); p0s.append(p0); p25s.append(p25)
+            a, p0, p25, curve = restore_curve(model, img, real, m, device)
+            aucs.append(a); p0s.append(p0); p25s.append(p25); seqs.append(curve)
+        curves[meth] = np.mean(seqs, axis=0)
         rows.append({"method": meth, "model": METHOD_MODEL.get(meth, "g3"), "restore_auc": float(np.mean(aucs)),
                      "prob_start": float(np.mean(p0s)), "prob_after_25pct": float(np.mean(p25s)), "n": len(aucs)})
         print(rows[-1], flush=True)
@@ -87,6 +89,10 @@ def main() -> None:
     df["method"] = df["method"].str.replace(r"^G3", tlabel, regex=True)
     out = REPO_ROOT / args.out
     df.to_csv(out, index=False)
+    # mean fake probability after each restoration step (step 0 = untouched image), one column per method
+    cv = pd.DataFrame({re.sub(r"^G3", tlabel, k): v for k, v in curves.items()})
+    cv.insert(0, "fraction_restored", np.linspace(0, 1, STEPS + 1))
+    cv.to_csv(out.with_name(out.stem + "_curves.csv"), index=False)
     print(df.to_string(index=False))
     print(f"wrote {out}")
 

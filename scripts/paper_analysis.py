@@ -140,7 +140,8 @@ def main():
     root = load_paths()["data_root"]
     final = final_teacher_name()
     res = REPO_ROOT / "results"
-    cal = calibration(["b1_swin", "c1_clip_lora", final, "s3_kd_full", "f1h_grace_dct_h264", "r1_univfd", "r2_sbi_effb4"])
+    cal = calibration(["b1_swin", "c1_clip_lora", "c2_clip_sbi", "g1_concepts", "g2_dct", final, "s3_kd_full", "f1h_grace_dct_h264",
+                       "r1_univfd", "r2_sbi_effb4"])
     cal.to_csv(res / "paper_calibration.csv", index=False)
     ctab = concepts_by_method(resolve_runs([final], [42])[0])
     ctab.to_csv(res / "paper_concepts_by_method.csv")

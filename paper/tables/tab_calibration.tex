@@ -1,19 +1,23 @@
 \begin{table}[t]
 \centering
 \footnotesize
-\caption{Expected calibration error (15 bins, video level, seed 42; lower is better) of the raw fake probability. ECE does not measure ranking: R2 is well calibrated but ranks poorly (Table~\ref{tab:main}).}
+\setlength{\tabcolsep}{3pt}
+\caption{Expected calibration error of the video score (15 equal-width bins, seed 42; lower is better), raw / after the temperature $T$ fitted on FF++ validation frames.}
 \label{tab:ece}
-\begin{tabular}{lccc}
+\begin{tabular}{lcccc}
 \toprule
-Model & FF++ & DFD & Celeb-DF \\
+Model & $T$ & FF++ & DFD & Celeb-DF \\
 \midrule
-B1 & 0.057 & 0.237 & 0.578 \\
-R1 & 0.093 & 0.182 & 0.394 \\
-R2 & 0.151 & 0.067 & 0.088 \\
-C1 & 0.037 & 0.261 & 0.527 \\
-F1 & 0.068 & 0.075 & 0.161 \\
-F1h & 0.075 & 0.048 & 0.059 \\
-S3 & 0.074 & 0.074 & 0.105 \\
+B1 & 4.75 & 0.057 / 0.089 & 0.237 / 0.233 & 0.578 / 0.489 \\
+R1 & 1.00 & 0.093 / 0.093 & 0.182 / 0.182 & 0.394 / 0.394 \\
+R2 & 1.00 & 0.151 / 0.151 & 0.067 / 0.067 & 0.088 / 0.088 \\
+C1 & 1.00 & 0.037 / 0.037 & 0.261 / 0.261 & 0.527 / 0.527 \\
+C2 & 1.00 & 0.082 / 0.082 & 0.075 / 0.075 & 0.069 / 0.069 \\
+G1 & 1.00 & 0.108 / 0.108 & 0.158 / 0.158 & 0.230 / 0.230 \\
+G2 & 1.00 & 0.107 / 0.107 & 0.157 / 0.157 & 0.216 / 0.216 \\
+F1 & 1.04 & 0.068 / 0.071 & 0.075 / 0.074 & 0.161 / 0.159 \\
+F1h & 1.00 & 0.075 / 0.075 & 0.048 / 0.048 & 0.059 / 0.059 \\
+S3 & 1.66 & 0.074 / 0.121 & 0.074 / 0.071 & 0.105 / 0.075 \\
 \bottomrule
 \end{tabular}
 \end{table}

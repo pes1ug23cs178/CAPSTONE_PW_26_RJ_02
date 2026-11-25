@@ -1,5 +1,5 @@
 """paper/references.tex from the verified reference list of the report (ESA Report/build/backmatter.py: REFS),
-in order of first citation in paper/main.tex. Fails if main.tex cites a key that is not in REFS.
+in order of first citation in paper/Paper.tex (or the file given as argument). Fails if it cites a key that is not in REFS.
 
 python paper/make_references.py
 """
@@ -30,7 +30,7 @@ def tex(s: str) -> str:
 
 
 def main():
-    src = (ROOT / "paper" / "main.tex").read_text(encoding="utf-8")
+    src = (ROOT / "paper" / (sys.argv[1] if len(sys.argv) > 1 else "Paper.tex")).read_text(encoding="utf-8")
     keys = []
     for group in re.findall(r"\\cite\{([^}]+)\}", src):
         for k in group.split(","):
