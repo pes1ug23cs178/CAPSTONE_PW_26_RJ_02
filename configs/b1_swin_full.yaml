@@ -15,6 +15,7 @@ data:
   - splits/fullff_test.csv
   - splits/dfd_test.csv
   - splits/celebdf_test.csv
+  - splits/dfo_test.csv
   sbi: false
   cells:
   - real

@@ -28,6 +28,7 @@ data:
   - splits/fullff_test.csv
   - splits/dfd_test.csv
   - splits/celebdf_test.csv
+  - splits/dfo_test.csv
   train: splits/fullff_train.csv
   val: splits/fullff_val.csv
 loss:

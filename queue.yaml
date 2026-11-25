@@ -393,6 +393,11 @@ jobs:
   - name: full_f1_s42
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/f1_grace_dct_full.yaml --seed 42
     after: sbi_sets_fullff
+  - name: dfo_eval_current
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin r1_univfd r2_sbi_effb4 c1_clip_lora c2_clip_sbi g1_concepts g2_dct g3_full a3_linear_head f1_grace_dct f1h_grace_dct_h264 s0_student s2_kd_logits s3_kd_full s3h_kd_full_h264 s3hh_kd_f1h_h264 --seeds 42 1 2 --splits dfo_test --degrades clean --out results/fullff/dfo_current_models.csv
+  - name: dfo_eval_full_f1_s42
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models f1_grace_dct_full --seeds 42 --splits dfo_test --degrades clean --out results/fullff/dfo_full_f1_s42.csv
+    after: full_f1_s42
   - name: full_b1_s42
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/b1_swin_full.yaml --seed 42
   - name: full_c1_s42
