@@ -65,3 +65,4 @@ paper/*.zip
 backups/
 faceforensics_download_v4.py
 ff++_full/
+deeperforensics/
