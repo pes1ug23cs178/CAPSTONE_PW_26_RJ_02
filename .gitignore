@@ -63,3 +63,5 @@ deploy/
 paper/*.zip
 .gradio/
 backups/
+faceforensics_download_v4.py
+ff++_full/
