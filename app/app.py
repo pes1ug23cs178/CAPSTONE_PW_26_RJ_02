@@ -8,10 +8,7 @@ Careful check (Deep): final teacher on the GPU. Quick check: S3 student via ONNX
 """
 from __future__ import annotations
 
-import base64
 import html as htmllib
-import io
-import json
 import os
 import sys
 import tempfile
@@ -20,183 +17,17 @@ from pathlib import Path
 
 import numpy as np
 
-CODE = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(CODE))
-# data (runs/, cache/, release/) live in the real repo; under scripts/run_snapshot.py the code runs from a frozen copy
-REPO = Path(os.environ.get("GRACE_REPO_ROOT") or CODE).resolve()
-
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import gradio as gr  # noqa: E402
-import matplotlib  # noqa: E402
 
-matplotlib.use("Agg")
-import matplotlib.cm as cm  # noqa: E402
-import matplotlib.pyplot as plt  # noqa: E402
-
-from app.pipeline import (CONCEPT_LABELS, LIMITATION, Analysis, DeepEngine, FaceCropper, QuickEngine,  # noqa: E402
-                          analyse, band, sha256_file)
-
-VIDEO_EXT = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
-IMAGE_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
-
-# ---------- deployment settings (environment variables; the lab defaults are unchanged) ----------
-# GRACE_ONLINE=1         public deployment: smaller uploads, no dataset faces shown, privacy note
-# GRACE_MODEL_REPO=u/r   download the release files from this Hugging Face model repo (else use ./release)
-# GRACE_MODEL_REVISION   pin a model-repo commit (default: latest)
-# GRACE_FRAMES           frames sampled per video (default 32; 16 online keeps CPU checks around 30 s)
-# GRACE_MAX_MB           upload limit in MB (default 200; 50 online)
-ONLINE = os.environ.get("GRACE_ONLINE") == "1"
-MAX_MB = int(os.environ.get("GRACE_MAX_MB") or (50 if ONLINE else 200))
-N_FRAMES = int(os.environ.get("GRACE_FRAMES") or (16 if ONLINE else 32))
-SHOW_EVIDENCE = not ONLINE  # nearest training faces are dataset images we may not publish
-
-_engines: dict = {}
-_cropper = None
-_index = None
-_release = None
-
-
-def release_dir() -> Path:
-    """Folder with the released model files: a Hugging Face model repo when GRACE_MODEL_REPO is set, else ./release."""
-    global _release
-    if _release is None:
-        repo_id = os.environ.get("GRACE_MODEL_REPO")
-        if repo_id:
-            from huggingface_hub import snapshot_download
-            _release = Path(snapshot_download(repo_id, revision=os.environ.get("GRACE_MODEL_REVISION") or None,
-                                              token=os.environ.get("HF_TOKEN") or None))
-        else:
-            _release = REPO / "release"
-    return _release
-
-
-def latest_run(name: str):
-    runs = sorted((REPO / "runs").glob(f"{name}_s42_*"))
-    runs = [r for r in runs if (r / "best.pth").exists()]
-    return runs[-1] if runs else None
-
-
-def temperature(run) -> float:
-    p = run / "temperature.json" if run else None
-    return json.loads(p.read_text())["temperature"] if p and p.exists() else 1.0
-
-
-def released_temperature(stem: str) -> float:
-    p = release_dir() / f"{stem}_temperature.json"
-    return json.loads(p.read_text())["temperature"] if p.exists() else 1.0
-
-
-CAREFUL, QUICK = "Careful check (recommended)", "Quick check"
-MODE_OF = {CAREFUL: "Deep", QUICK: "Quick", "Deep": "Deep", "Quick": "Quick"}
-
-
-def quick_onnx() -> Path:
-    return release_dir() / "grace_student.onnx"
-
-
-def engine(mode: str):
-    """Lab: the latest run folders under runs/. Elsewhere (no runs/): the released files."""
-    mode = MODE_OF.get(mode, mode)
-    if mode not in _engines:
-        if mode == "Quick":
-            run = latest_run("s3_kd_full")
-            t = temperature(run) if run else released_temperature("grace_student_s3")
-            _engines[mode] = QuickEngine(quick_onnx(), quick_onnx().with_suffix(".json"), t)
-            _engines[mode].name = "Quick check (small student model, CPU)"
-        else:
-            from utils.common import final_teacher_name
-            name = final_teacher_name()
-            run = latest_run(name)
-            if run is None:
-                run = release_dir() / "grace_teacher.pth"
-                t = released_temperature("grace_teacher")
-            else:
-                t = temperature(run)
-            e = DeepEngine(run, t)
-            _engines[mode] = e
-            _engines[mode].name = f"Careful check (final teacher {name.split('_')[0].upper()}, {e.device.type.upper()})"
-    return _engines[mode]
-
-
-# ---------- plain-language layer ----------
-# Concept scores (sigmoid) on FF++ test faces, 20 Nov: reals 0.00-0.07 on every concept, fakes 0.3-0.9 on most.
-STRONG, SOME = 0.6, 0.25
-PLAIN = [  # (title when found, one-line explanation, title when not found)
-    ("The face looks pasted on", "The face seems blended onto the head, like a sticker.", "The face sits naturally on the head"),
-    ("Skin colour does not quite match", "The face is a slightly different tone from the neck and ears.", "Skin colour matches"),
-    ("Part of the face is unusually blurry", "One area is softer than the rest, which editing often leaves behind.", "No unusual blur"),
-    ("Part of the face looks over-sharpened", "Some edges look harsher than a normal camera would make them.", "No harsh sharpening"),
-    ("Signs of resizing", "Parts of the face look stretched or re-drawn.", "No signs of resizing"),
-    ("The mouth area looks edited", "Lips and teeth look different from the rest of the face, a common sign of a swap.", "The mouth looks natural"),
-    ("The eye area looks edited", "Eyes or eyebrows look different from the rest of the face.", "The eyes look natural"),
-    ("The whole face may be replaced", "Clues cover the entire face, not just one part.", "No sign of a full face swap"),
-    ("The face is slightly out of place", "Features do not line up perfectly with the head.", "Features line up with the head"),
-    ("The edge around the face is uneven", "There is a visible seam along the jaw, cheeks or hairline.", "No seam around the face"),
-]
-VERDICT_UI = {  # band -> label, headline template, explanation, colour, tint, icon
-    "Likely fake": ("Likely fake", "This {n} is likely fake",
-                    "We found clear signs that the face in this {n} was edited or swapped onto someone else.",
-                    "#B4410E", "#FCEBDD", "warn"),
-    "Inconclusive": ("Can't tell", "We can't tell for sure",
-                     "Some clues point to editing, others don't. Treat this {n} with care and check where it came from.",
-                     "#4E5560", "#ECEDEF", "question"),
-    "Likely real": ("Looks real", "This {n} looks real",
-                    "We didn't find signs that the face was edited. That is not a guarantee, but it is a good sign.",
-                    "#1F55B8", "#E3ECFA", "check"),
-}
-ICONS = {
-    "warn": '<path d="M12 3l9 16H3z"/><path d="M12 10v4"/><path d="M12 17h.01"/>',
-    "question": '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7"/><path d="M12 17h.01"/>',
-    "check": '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 10"/>',
-}
-FRIENDLY_LIMITS = ("No detector is perfect. GRACE learned from face-swap videos and can be fooled by new editing tools, "
-                   "heavy compression, or faces seen from the side. Use this as one piece of evidence, not the final word.")
-
-
-def icon(name: str, size: int = 18) -> str:
-    return (f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" '
-            f'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{ICONS[name]}</svg>')
-
-
-def glow(face_crop: np.ndarray, m: np.ndarray) -> np.ndarray:
-    """Orange glow where the concept map is high (plain view; the jet overlay stays in the technical view)."""
-    # soft glow: weak map values fade out (m**2), strongest areas reach 42% orange, so the face stays visible
-    a = (0.42 * np.clip(m, 0, 1) ** 2)[..., None]
-    orange = np.array([232, 106, 26], np.float32)
-    return (face_crop * (1 - a) + orange * a).astype(np.uint8)
-
-
-def used_faces(a: Analysis):
-    used = [f for f in a.faces if f.reliable]
-    return used or a.faces
+from app.pipeline import CONCEPT_LABELS, LIMITATION, Analysis, analyse, band, sha256_file  # noqa: E402
+from app.render import (  # noqa: E402,F401
+    REPO, CODE, VIDEO_EXT, IMAGE_EXT, ONLINE, MAX_MB, N_FRAMES, SHOW_EVIDENCE, release_dir, latest_run, temperature, released_temperature, CAREFUL, QUICK, MODE_OF, quick_onnx, engine, STRONG, SOME, PLAIN, VERDICT_UI, ICONS, FRIENDLY_LIMITS, icon, glow, used_faces, preview, cropper, training_index, overlay, top_faces, timeline_fig, concept_fig, gallery_items, fig_to_b64, img_to_b64)
 
 
 def message_card(title: str, body: str) -> str:
     return (f'<div class="g-card g-msg"><h2>{htmllib.escape(title)}</h2>'
             f'<p>{htmllib.escape(body)}</p></div>')
-
-
-def preview(path: str, is_video: bool):
-    """A still of the uploaded file for the verdict card (middle frame of a video) and its length as m:ss."""
-    import cv2
-    length = ""
-    if is_video:
-        cap = cv2.VideoCapture(path)
-        n, fps = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)), cap.get(cv2.CAP_PROP_FPS) or 0
-        cap.set(cv2.CAP_PROP_POS_FRAMES, max(n // 2, 0))
-        ok, bgr = cap.read()
-        cap.release()
-        if fps > 0 and n > 0:
-            s = int(round(n / fps))
-            length = f"{s // 60}:{s % 60:02d}"
-    else:
-        bgr = cv2.imread(path)
-        ok = bgr is not None
-    if not ok:
-        return None, length
-    h, w = bgr.shape[:2]
-    if w > 720:
-        bgr = cv2.resize(bgr, (720, int(h * 720 / w)), interpolation=cv2.INTER_AREA)
-    return cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB), length
 
 
 def hero_html(a: Analysis, path: str, is_video: bool) -> str:
@@ -355,84 +186,6 @@ footer{display:none !important}
 """
 
 FORCE_LIGHT_JS = "() => { document.body.classList.remove('dark'); document.querySelector('gradio-app')?.classList.remove('dark'); }"
-
-
-def cropper():
-    global _cropper
-    if _cropper is None:
-        _cropper = FaceCropper()
-    return _cropper
-
-
-def training_index():
-    global _index
-    if _index is None:
-        from explain.retrieval import TrainingIndex
-        _index = TrainingIndex(REPO / "cache" / "teacher", REPO / "cache" / "sbi_pool" / "student_train.csv")
-    return _index
-
-
-def overlay(face_crop: np.ndarray, m: np.ndarray, opacity: float) -> np.ndarray:
-    heat = (matplotlib.colormaps["jet"](m)[..., :3] * 255).astype(np.uint8)
-    return ((1 - opacity) * face_crop + opacity * heat).astype(np.uint8)
-
-
-def top_faces(a: Analysis, k: int = 4):
-    """Most suspicious faces, front-facing ones first (extreme poses are shown only if nothing else is left)."""
-    return sorted(range(len(a.faces)), key=lambda i: (not a.faces[i].reliable, -a.faces[i].prob))[:k]
-
-
-def timeline_fig(a: Analysis):
-    fig, ax = plt.subplots(figsize=(7, 2.6))
-    probs = [f.prob for f in a.faces]
-    ax.plot(probs, color="tab:blue", alpha=0.5)
-    ok = [i for i, f in enumerate(a.faces) if f.reliable]
-    bad = [i for i, f in enumerate(a.faces) if not f.reliable]
-    ax.scatter(ok, [probs[i] for i in ok], color="tab:blue", zorder=3, label="used for the verdict")
-    if bad:
-        ax.scatter(bad, [probs[i] for i in bad], color="lightgray", edgecolor="gray", zorder=3,
-                   label="not used: head turned or tilted too far")
-        ax.legend(fontsize=7, loc="upper left")
-    ax.axhspan(0.35, 0.65, color="orange", alpha=0.12)
-    ax.set(ylim=(0, 1), xlabel="Face frame (in time order)", ylabel="Fake probability")
-    extra = []
-    if a.flicker is not None:
-        extra.append(f"concept flicker {a.flicker:.3f}")
-    if a.drift is not None:
-        extra.append(f"identity drift {a.drift:.3f}")
-    ax.set_title(" | ".join(extra) or "Per-frame score", fontsize=9)
-    fig.tight_layout()
-    return fig
-
-
-def concept_fig(contrib: np.ndarray, residual: float):
-    fig, ax = plt.subplots(figsize=(6, 3.4))
-    order = np.argsort(-contrib)
-    ax.barh([CONCEPT_LABELS[i] for i in order], contrib[order], color="tab:red")
-    ax.barh(["Other evidence (residual)"], [residual], color="tab:gray")
-    ax.invert_yaxis()
-    ax.set_xlabel("Contribution to the fake score (logit)")
-    fig.tight_layout()
-    return fig
-
-
-def gallery_items(a: Analysis, concept_idx: int, opacity: float):
-    return [(overlay(a.faces[i].crop, a.faces[i].maps[concept_idx], opacity),
-             f"frame {i}: p={a.faces[i].prob:.2f}" + ("" if a.faces[i].reliable else " (extreme pose, not used)"))
-            for i in top_faces(a)]
-
-
-def fig_to_b64(fig) -> str:
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=110)
-    plt.close(fig)
-    return base64.b64encode(buf.getvalue()).decode()
-
-
-def img_to_b64(img: np.ndarray) -> str:
-    import cv2
-    ok, buf = cv2.imencode(".png", cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
-    return base64.b64encode(buf.tobytes()).decode()
 
 
 def build_report(path: str, a: Analysis, eng, concept_idx: int) -> str:

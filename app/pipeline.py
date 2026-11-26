@@ -89,6 +89,9 @@ class FaceCropper:
         import face_alignment
         dev = device or pick_device()
         self.fa = face_alignment.FaceAlignment(face_alignment.LandmarksType.TWO_D, device=dev, face_detector="sfd")
+        # face-alignment turns on cuDNN auto-tuning, which re-tunes for every new frame size: 40-60 s extra on the
+        # first video of each resolution (measured 26 Nov 2026). Uploads come in many sizes, so keep it off.
+        torch.backends.cudnn.benchmark = False
 
     def crop(self, frame_rgb: np.ndarray, size: int = 224) -> Optional[np.ndarray]:
         out = self.crop_with_pose(frame_rgb, size)
@@ -226,12 +229,23 @@ class DeepEngine:
         return float(torch.sigmoid(torch.tensor(lg / self.T)))
 
 
-def analyse(media_path: str, engine, cropper: FaceCropper, is_video: bool, n_frames: int = 32) -> Analysis:
+def analyse(media_path: str, engine, cropper: FaceCropper, is_video: bool, n_frames: int = 32,
+            progress=None) -> Analysis:
+    """progress(stage, done, total), if given, is called as the work advances (stages: frames, faces, scoring);
+    it may raise to stop the analysis (used by the web server for cancel and time limits)."""
     from explain.video_cues import identity_drift, temporal_flicker
+    step = progress or (lambda *_: None)
     a = Analysis(mode=engine.name)
+    step("frames", 0, 1)
     frames = sample_frames(media_path, n_frames) if is_video else [cv2.cvtColor(cv2.imread(media_path), cv2.COLOR_BGR2RGB)]
     a.n_frames = len(frames)
-    found = [c for c in (cropper.crop_with_pose(f) for f in frames) if c is not None]
+    found = []
+    for i, f in enumerate(frames):
+        step("faces", i, len(frames))
+        c = cropper.crop_with_pose(f)
+        if c is not None:
+            found.append(c)
+    step("scoring", 0, 1)
     min_faces = 4 if is_video else 1
     if len(found) < min_faces:
         a.message = (f"Only {len(found)} of {len(frames)} sampled frames contain a detectable face; "

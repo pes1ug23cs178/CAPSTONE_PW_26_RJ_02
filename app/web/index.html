@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GRACE · Deepfake check</title>
+<meta name="description" content="Upload a photo or a short video of a face. GRACE tells you, in plain words, whether it looks edited.">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="/static/app.css">
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+<header class="g-header">
+  <div class="g-header-in">
+    <a class="g-brand" href="/">
+      <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="8" fill="#16181D"/><circle cx="16" cy="14" r="6" fill="none" stroke="#fff" stroke-width="2"/><path d="M9 25c2-3 4.5-4.5 7-4.5s5 1.5 7 4.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>GRACE <span class="g-brand-sub">Deepfake check</span></span>
+    </a>
+    <nav><a href="#how">How it works</a><a href="#limits">What it can't do</a></nav>
+  </div>
+</header>
+
+<main class="g-main">
+  <p class="g-intro">Upload a photo or a short video of a face. We'll tell you, in plain words, whether it looks edited.</p>
+
+  <form id="upload" class="g-card g-upload" novalidate>
+    <label id="drop" class="g-drop" for="file">
+      <input id="file" name="file" type="file">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+      <span id="drop-text"><b>Choose a photo or video</b> or drop it here</span>
+      <span id="drop-limit" class="g-small">Up to 200 MB · JPG, PNG, WEBP, MP4, MOV, AVI, MKV, WEBM</span>
+    </label>
+    <fieldset class="g-modes">
+      <legend>Type of check</legend>
+      <div id="modes"></div>
+    </fieldset>
+    <button id="go" class="g-btn g-btn-primary" type="submit" disabled>Check this file</button>
+  </form>
+
+  <section id="status" class="g-card g-status" hidden aria-live="polite">
+    <div class="g-status-row">
+      <div class="g-spinner" aria-hidden="true"></div>
+      <div>
+        <p id="status-title" class="g-status-title">Uploading…</p>
+        <p id="status-sub" class="g-small"></p>
+      </div>
+    </div>
+    <div class="g-bar"><div id="bar"></div></div>
+    <button id="cancel" class="g-btn g-btn-secondary" type="button">Cancel</button>
+  </section>
+
+  <section id="message" class="g-card g-msg" hidden aria-live="polite">
+    <h2 id="message-title"></h2>
+    <p id="message-body"></p>
+    <button class="g-btn g-btn-secondary js-again" type="button">Try another file</button>
+  </section>
+
+  <div id="result" hidden>
+    <section class="g-card g-hero">
+      <div class="g-hero-media">
+        <div class="g-thumb"><img id="r-media" alt=""><span id="r-pill" class="g-pill"></span></div>
+        <div id="r-caption" class="g-caption"></div>
+      </div>
+      <div class="g-hero-text">
+        <div id="r-badge" class="g-badge"></div>
+        <h1 id="r-headline"></h1>
+        <p id="r-expl" class="g-sub"></p>
+        <div class="g-meter-label">How sure are we?</div>
+        <div id="r-meter" class="g-meter" role="img">
+          <div class="g-seg g-seg-real"></div><div class="g-seg g-seg-mid"></div><div class="g-seg g-seg-fake"></div>
+          <div id="r-knob" class="g-knob"></div>
+        </div>
+        <div class="g-scale"><span>Looks real</span><span>Can't tell</span><span>Likely fake</span></div>
+        <p id="r-basis" class="g-basis"></p>
+        <p id="r-note" class="g-note" hidden></p>
+      </div>
+    </section>
+
+    <section class="g-reasons">
+      <h2 id="r-clues-title" class="g-h2"></h2>
+      <div id="r-clues" class="g-grid"></div>
+      <p id="r-hint" class="g-hint">Orange glow = the part of the face where we found the clue.</p>
+    </section>
+
+    <section class="g-card">
+      <h2 class="g-h2">What you can do now</h2>
+      <div class="g-steps">
+        <div><span>1</span><p>Check where the file came from. Is the account or website trustworthy?</p></div>
+        <div><span>2</span><p>Look for the same clip from a news outlet or the person's official page.</p></div>
+        <div><span>3</span><p>Don't share it as genuine until you're sure.</p></div>
+      </div>
+      <div class="g-actions">
+        <button class="g-btn g-btn-primary js-again" type="button">Check another file</button>
+        <a id="r-save" class="g-btn g-btn-secondary" href="#" download>Save this result</a>
+      </div>
+    </section>
+
+    <details id="tech" class="g-tech">
+      <summary>Show technical details</summary>
+      <div class="g-tech-body">
+        <p id="t-summary"></p>
+        <p class="g-small"><i>Trained on FaceForensics++ face swaps and reenactments; it may miss other kinds of fakes. A result is evidence, not proof.</i></p>
+        <div class="g-tech-grid">
+          <figure id="t-timeline-fig"><img id="t-timeline" alt="Fake probability for each face frame, in time order"><figcaption>Score for each face frame</figcaption></figure>
+          <figure><img id="t-concepts" alt="Contribution of each concept to the fake score"><figcaption>What pushed the score up</figcaption></figure>
+        </div>
+        <h3>Most suspicious faces</h3>
+        <div class="g-controls">
+          <label>Concept map <select id="t-concept"></select></label>
+          <label>Overlay strength <input id="t-opacity" type="range" min="0" max="1" step="0.05" value="0.45"></label>
+        </div>
+        <div id="t-gallery" class="g-gallery"></div>
+        <h3>Switch-off test</h3>
+        <p class="g-small">Turn concepts off and re-score: if the verdict changes, those concepts really drove it.</p>
+        <div id="t-off" class="g-checks"></div>
+        <button id="t-rescore" class="g-btn g-btn-secondary" type="button">Re-score</button>
+        <p id="t-rescore-out" aria-live="polite"></p>
+        <div id="t-evidence-wrap" hidden>
+          <h3>Nearest training faces</h3>
+          <div id="t-evidence" class="g-gallery"></div>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <section id="how" class="g-how">
+    <h2 class="g-h2">How it works</h2>
+    <div class="g-steps">
+      <div><span>1</span><p>We find the face in up to 32 moments of your video (or in your photo) and skip moments where the head is turned away.</p></div>
+      <div><span>2</span><p>Our model looks for 10 tell-tale signs of face swapping, such as a seam around the face or a mouth that looks edited.</p></div>
+      <div><span>3</span><p>We combine them into one answer and show you the strongest clues, with the place on the face where we found them.</p></div>
+    </div>
+  </section>
+  <p id="limits" class="g-limits">No detector is perfect. GRACE learned from face-swap videos and can be fooled by new editing tools, heavy compression, or faces seen from the side. Use this as one piece of evidence, not the final word.</p>
+  <p class="g-limits">Privacy: your file is analysed on this server only for this check. It is deleted as soon as the check ends, and the result is removed after 30 minutes.</p>
+</main>
+</body>
+</html>
