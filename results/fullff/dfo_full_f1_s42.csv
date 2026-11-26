@@ -1,0 +1,2 @@
+model,seed,run,split,degrade,video_auc,frame_auc,eer,acc,f1,concept_share,gate_mean
+f1_grace_dct_full,42,f1_grace_dct_full_s42_20261126-0114,dfo_test,clean,0.9870408163265307,0.9565547273596938,0.05357142857142859,0.95,0.9485294117647058,0.7207299298725237,0.7487062726702008

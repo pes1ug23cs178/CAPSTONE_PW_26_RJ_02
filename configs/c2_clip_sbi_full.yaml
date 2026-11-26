@@ -1,0 +1,64 @@
+name: c2_clip_sbi_full
+parent: c2_clip_sbi
+notes: c2_clip_sbi recipe on the full FF++ c23 download (5 methods, official split,
+  crops matched to the Feb 2026 pipeline); cell weights keep the original real / SBI
+  / forgery shares; own cache root
+model:
+  backbone: clip_vitl14_lora
+  lora:
+    r: 16
+    alpha: 32
+    dropout: 0.1
+  freq_branch: none
+  fusion: none
+  head: linear
+  domain:
+    enabled: false
+  grad_checkpointing: false
+  save_trainable_only: true
+data:
+  train: splits/fullff_train.csv
+  val: splits/fullff_val.csv
+  tests:
+  - splits/fullff_test.csv
+  - splits/dfd_test.csv
+  - splits/celebdf_test.csv
+  - splits/dfo_test.csv
+  sbi: true
+  cells:
+  - real
+  - sbi
+  - Deepfakes
+  - Face2Face
+  - FaceSwap
+  - NeuralTextures
+  - FaceShifter
+  cell_weights:
+    real: 3
+    sbi: 3
+    Deepfakes: 0.6
+    Face2Face: 0.6
+    FaceSwap: 0.6
+    NeuralTextures: 0.6
+    FaceShifter: 0.6
+  augment:
+    flip: 0.5
+    color_jitter: 0.1
+    jpeg_p: 0.3
+    jpeg_q:
+    - 60
+    - 100
+    blur_p: 0.1
+optim:
+  lr:
+    lora: 0.0002
+    heads: 0.001
+  weight_decay: 0.05
+  epochs: 12
+  steps_per_epoch: 1500
+  batch_size: 32
+  warmup_epochs: 1
+  ema: 0.999
+  grad_clip: 1.0
+  precision: bf16
+paths_file: configs/paths_fullff.yaml

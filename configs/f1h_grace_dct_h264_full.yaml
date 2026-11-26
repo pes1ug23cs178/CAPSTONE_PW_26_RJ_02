@@ -1,0 +1,80 @@
+data:
+  augment:
+    blur_p: 0.1
+    color_jitter: 0.1
+    flip: 0.5
+    jpeg_p: 0.3
+    jpeg_q:
+    - 60
+    - 100
+    h264_p: 0.3
+    h264_crf:
+    - 24
+    - 38
+  cell_weights:
+    real: 3
+    sbi: 2
+    Deepfakes: 0.6
+    Face2Face: 0.6
+    FaceSwap: 0.6
+    NeuralTextures: 0.6
+    FaceShifter: 0.6
+  cells:
+  - real
+  - sbi
+  - Deepfakes
+  - Face2Face
+  - FaceSwap
+  - NeuralTextures
+  - FaceShifter
+  sbi: true
+  tests:
+  - splits/fullff_test.csv
+  - splits/dfd_test.csv
+  - splits/celebdf_test.csv
+  - splits/dfo_test.csv
+  train: splits/fullff_train.csv
+  val: splits/fullff_val.csv
+loss:
+  concept: 0.5
+  map: 0.5
+  residual: 0.01
+  w_l1: 0.0001
+model:
+  backbone: clip_vitl14_lora
+  domain:
+    enabled: false
+  freq_branch: dct
+  fusion: gated
+  grad_checkpointing: false
+  head: concept
+  lora:
+    alpha: 32
+    dropout: 0.1
+    r: 16
+  num_concepts: 10
+  save_trainable_only: true
+  z_dim: 512
+name: f1h_grace_dct_h264_full
+notes: f1h_grace_dct_h264 recipe on the full FF++ c23 download (5 methods, official
+  split, crops matched to the Feb 2026 pipeline); cell weights keep the original real
+  / SBI / forgery shares; own cache root
+optim:
+  batch_size: 32
+  ema: 0.999
+  epochs: 12
+  grad_clip: 1.0
+  lr:
+    freq: 0.002
+    fusion: 0.001
+    heads: 0.001
+    lora: 0.0002
+  precision: bf16
+  steps_per_epoch: 1500
+  warmup_epochs: 1
+  weight_decay: 0.05
+parent: f1h_grace_dct_h264
+select:
+  hard: h264:40
+  sbi: true
+paths_file: configs/paths_fullff.yaml

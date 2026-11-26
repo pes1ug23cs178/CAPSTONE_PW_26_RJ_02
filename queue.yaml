@@ -418,3 +418,19 @@ jobs:
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/c1_clip_lora_full.yaml --seed 1
   - name: full_c1_s2
     cmd: python scripts/run_snapshot.py -- python train.py --config configs/c1_clip_lora_full.yaml --seed 2
+  # Added 26 Nov 18:55: full FF++ C2 and F1h (3 seeds each), then robustness of all full-FF++ models.
+  - name: full_c2_s42
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/c2_clip_sbi_full.yaml --seed 42
+  - name: full_f1h_s42
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/f1h_grace_dct_h264_full.yaml --seed 42
+  - name: full_c2_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/c2_clip_sbi_full.yaml --seed 1
+  - name: full_f1h_s1
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/f1h_grace_dct_h264_full.yaml --seed 1
+  - name: full_c2_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/c2_clip_sbi_full.yaml --seed 2
+  - name: full_f1h_s2
+    cmd: python scripts/run_snapshot.py -- python train.py --config configs/f1h_grace_dct_h264_full.yaml --seed 2
+  - name: robustness_full
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin_full c1_clip_lora_full f1_grace_dct_full c2_clip_sbi_full f1h_grace_dct_h264_full --seeds 42 1 2 --splits dfd_test celebdf_test dfo_test --out results/fullff/robustness_full.csv
+    after: full_f1h_s2
