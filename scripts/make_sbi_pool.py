@@ -46,13 +46,14 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=40000)
     ap.add_argument("--workers", type=int, default=12)
+    ap.add_argument("--split", default="ffpp_train", help="training split under splits/ (fullff_train for full FF++)")
     args = ap.parse_args()
     paths = load_paths()
     data_root, cache = paths["data_root"], paths["cache_root"]
     free_gb = shutil.disk_usage(cache.parent).free / 1e9
     if free_gb < 50:
         sys.exit(f"Only {free_gb:.0f} GB free; runbook requires 50 GB before caching")
-    train = pd.read_csv(REPO_ROOT / "splits" / "ffpp_train.csv", dtype=str, keep_default_na=False)
+    train = pd.read_csv(REPO_ROOT / "splits" / f"{args.split}.csv", dtype=str, keep_default_na=False)
     real = train[train["method"] == "real"]
     real = real[[(cache / "landmarks" / r.video_id / f"{Path(r.frame_path).stem}.npy").exists() for r in real.itertuples()]]
     pick = real.sample(n=args.n, replace=len(real) < args.n, random_state=4242).reset_index(drop=True)

@@ -434,3 +434,25 @@ jobs:
   - name: robustness_full
     cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models b1_swin_full c1_clip_lora_full f1_grace_dct_full c2_clip_sbi_full f1h_grace_dct_h264_full --seeds 42 1 2 --splits dfd_test celebdf_test dfo_test --out results/fullff/robustness_full.csv
     after: full_f1h_s2
+  # Added 27 Nov 06:55: Quick-check student on full FF++, distilled from F1-full s42 (app engine refresh).
+  - name: sbi_pool_fullff
+    cmd: python scripts/run_snapshot.py -- python scripts/with_paths.py configs/paths_fullff.yaml -- python scripts/make_sbi_pool.py --split fullff_train
+    after: robustness_full
+  - name: teacher_cache_fullff
+    cmd: python scripts/run_snapshot.py -- python scripts/with_paths.py configs/paths_fullff.yaml -- python scripts/cache_teacher.py --teacher f1_grace_dct_full_s42
+    after: sbi_pool_fullff
+  - name: full_s3f_s42
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3f_kd_f1full.yaml --seed 42
+    after: teacher_cache_fullff
+  - name: export_onnx_fullff
+    cmd: python scripts/run_snapshot.py -- python scripts/export_onnx.py --model s3f_kd_f1full --out release/grace_student_fullff.onnx
+    after: full_s3f_s42
+  - name: full_s3f_s1
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3f_kd_f1full.yaml --seed 1
+    after: full_s3f_s42
+  - name: full_s3f_s2
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3f_kd_f1full.yaml --seed 2
+    after: full_s3f_s1
+  - name: robustness_full_student
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models s3f_kd_f1full s3_kd_full --seeds 42 1 2 --splits dfd_test celebdf_test dfo_test --out results/fullff/robustness_full_student.csv
+    after: full_s3f_s2

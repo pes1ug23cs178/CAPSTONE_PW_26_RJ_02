@@ -36,8 +36,9 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ckpt", default=None, help="best.pth; default = latest s3_kd_full seed 42 run")
     ap.add_argument("--out", default="release/grace_student.onnx")
+    ap.add_argument("--model", default="s3_kd_full", help="run name prefix used when --ckpt is not given (seed 42)")
     args = ap.parse_args()
-    ckpt = Path(args.ckpt) if args.ckpt else resolve_runs(["s3_kd_full"], [42])[0] / "best.pth"
+    ckpt = Path(args.ckpt) if args.ckpt else resolve_runs([args.model], [42])[0] / "best.pth"
     model, _ = load_model_from_ckpt(str(ckpt), torch.device("cpu"))
     model = Export(model.float().eval())
     out = REPO_ROOT / args.out
