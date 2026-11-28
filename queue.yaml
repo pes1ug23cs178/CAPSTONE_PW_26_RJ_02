@@ -456,3 +456,21 @@ jobs:
   - name: robustness_full_student
     cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models s3f_kd_f1full s3_kd_full --seeds 42 1 2 --splits dfd_test celebdf_test dfo_test --out results/fullff/robustness_full_student.csv
     after: full_s3f_s2
+  # Added 28 Nov 09:30: H.264-trained full-FF++ student from F1h-full (S3f lost to S3 under H.264).
+  - name: teacher_cache_f1h_fullff
+    cmd: python scripts/run_snapshot.py -- python scripts/with_paths.py configs/paths_fullff.yaml -- python scripts/cache_teacher.py --teacher f1h_grace_dct_h264_full_s42 --out teacher_f1h
+  - name: full_s3fh_s42
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3fh_kd_f1hfull_h264.yaml --seed 42
+    after: teacher_cache_f1h_fullff
+  - name: full_s3fh_s1
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3fh_kd_f1hfull_h264.yaml --seed 1
+    after: full_s3fh_s42
+  - name: full_s3fh_s2
+    cmd: python scripts/run_snapshot.py -- python distill.py --config configs/s3fh_kd_f1hfull_h264.yaml --seed 2
+    after: full_s3fh_s1
+  - name: export_onnx_fullff_h264
+    cmd: python scripts/run_snapshot.py -- python scripts/export_onnx.py --model s3fh_kd_f1hfull_h264 --out release/grace_student_fullff_h264.onnx
+    after: full_s3fh_s42
+  - name: robustness_full_student_h264
+    cmd: python scripts/run_snapshot.py -- python scripts/eval_all.py --models s3fh_kd_f1hfull_h264 s3hh_kd_f1h_h264 --seeds 42 1 2 --splits dfd_test celebdf_test dfo_test --out results/fullff/robustness_full_student_h264.csv
+    after: full_s3fh_s2
